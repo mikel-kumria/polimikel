@@ -38,13 +38,12 @@ def load_tsv_input(tsv_path, sample_index=0, output_folder="."):
       - The remaining columns are numeric features (each sample is a time series)
     
     Reads the file using pandas, extracts the time series from the given sample_index,
-    and saves a high-quality PNG plot (dpi=300) of the input time series in output_folder.
+    and saves a high-quality PNG plot of the input time series in output_folder.
     
     Returns:
         A tensor of shape (1, time_steps, 1) representing the input.
     """
     data = pd.read_csv(tsv_path, sep='\t', header=0)
-    # (Labels are computed here if needed)
     raw_labels = data.iloc[:, 0].values.astype(int)
     _ = ((raw_labels == 1).astype(int))
     features = data.iloc[:, 1:].values.astype(np.float32)
@@ -58,51 +57,64 @@ def load_tsv_input(tsv_path, sample_index=0, output_folder="."):
     plt.grid(True)
     plt.tight_layout()
     input_png_path = os.path.join(output_folder, 'tsv_input.png')
-    plt.savefig(input_png_path, dpi=300)
+    plt.savefig(input_png_path, dpi=600)
     plt.close()
     
     x_tensor = torch.tensor(x_sample, dtype=torch.float32).unsqueeze(1).unsqueeze(0)
     return x_tensor
 
-def generate_synthetic_input(num_steps, threshold=1000.0, pattern="dirac", output_folder="."):
+def generate_synthetic_input(num_steps, threshold=1000.0, pattern="dirac", output_folder=".", noise_mean=0.5, noise_std=0.1, constant_value=0.5):
+
     """
     Generates a synthetic 1D time series.
     
-    For the "alternating" pattern the signal alternates between 0.5 and 0.0 in blocks.
+    For the "steps" pattern the signal alternates between the threshold value and 0.0 in blocks.
+    For the "dirac" pattern the signal is zero except for a single dirac-delta spike at the first time step.
     
-    Saves a high-quality PNG plot (dpi=300) in output_folder.
+    Saves a high-quality PNG plot in output_folder.
     
     Returns:
         A tensor of shape (1, num_steps, 1).
     """
-    if pattern == "alternating":
+    if pattern == "steps":
         block_size = num_steps // 10 if num_steps >= 10 else 10
         data = np.zeros(num_steps, dtype=np.float32)
         for i in range(num_steps):
             block = i // block_size
-            data[i] = 0.5 if (block % 2 == 0) else 0.0
-    
+            data[i] = threshold if (block % 2 == 0) else 0.0
+
     elif pattern == "dirac":
         data = np.zeros(num_steps, dtype=np.float32)
-        data[1] = threshold
+        data[0] = threshold
 
-    else:
+    elif pattern == "gaussian":
+        data = np.random.normal(loc=noise_mean, scale=noise_std, size=num_steps).astype(np.float32)
+
+    elif pattern == "constant":
+        data = np.full(num_steps, constant_value, dtype=np.float32)
+
+    elif pattern == "random":
         data = np.random.rand(num_steps).astype(np.float32)
 
-    plt.figure(figsize=(8,4))
-    plt.plot(data, marker='o', linestyle='-')
-    plt.title("Synthetic Input Time Series")
-    plt.xlabel("Time Step")
-    plt.ylabel("Value")
-    plt.grid(True)
-    plt.tight_layout()
+    else:
+        raise ValueError("Please select a valid synthetic pattern.")
+
+
+    fig, ax = plt.subplots(figsize=(8,4))
+    ax.plot(data, marker='o', linestyle='-')
+    ax.set_title("Synthetic Input Time Series")
+    ax.set_xlabel("Time Step")
+    ax.set_ylabel("Value")
+    ax.grid(True)
+    fig.tight_layout()
     synthetic_path = os.path.join(output_folder, "synthetic_input.png")
-    plt.savefig(synthetic_path, dpi=300)
-    plt.close()
+    fig.savefig(synthetic_path, dpi=600)
+    plt.close(fig) 
+
     x_tensor = torch.tensor(data, dtype=torch.float32).unsqueeze(1).unsqueeze(0)
     return x_tensor
 
-class SpikingReservoirExp(nn.Module):
+class SpikingReservoir(nn.Module):
     def __init__(self, threshold, beta_reservoir, reservoir_size, device,
                  reset_delay, input_lif_beta, reset_mechanism,
                  init_weight_a, init_weight_b, spectral_radius):
@@ -119,10 +131,11 @@ class SpikingReservoirExp(nn.Module):
             init_weight_b (float): Upper bound.
             spectral_radius (float): Desired spectral radius for scaling the recurrent weights.
         """
-        super(SpikingReservoirExp, self).__init__()
+        super(SpikingReservoir, self).__init__()
         self.device = device
         self.reservoir_size = reservoir_size
-        
+        self.input_lif_beta = input_lif_beta
+
         self.input_fc = nn.Linear(1, 1, bias=False)
         self.input_lif = snn.Leaky(beta=input_lif_beta,
                                    threshold=threshold,
@@ -151,6 +164,7 @@ class SpikingReservoirExp(nn.Module):
         Simulate reservoir dynamics one time step at a time.
         
         Args:
+            input_reservoir_type (str): "LIF" or "Vmem" or "pass_through" to select if the input neuron is a spiking LIF (LIF), just the Vmem of the LIF without spikes and reset (Vmem) or a pass-through.
             x (tensor): Input tensor of shape (batch_size, time_steps, 1).
         
         Returns:
@@ -158,6 +172,7 @@ class SpikingReservoirExp(nn.Module):
             spike_record (np.array): Recorded spikes (shape: time_steps x batch_size x reservoir_size).
             mem_record (np.array): Recorded membrane potentials (same shape).
         """
+        input_reservoir_type = "LIF"
         batch_size, time_steps, _ = x.shape
         x = x.to(self.device)
         input_mem = torch.zeros(batch_size, 1, device=self.device)
@@ -165,16 +180,54 @@ class SpikingReservoirExp(nn.Module):
         reservoir_spk = torch.zeros(batch_size, self.reservoir_size, device=self.device)
         spike_record = []
         mem_record = []
+
         for t in range(time_steps):
-            x_t = x[:, t, :]  # shape: (batch_size, 1)
-            input_current = self.input_fc(x_t)
-            input_spk, input_mem = self.input_lif(input_current, input_mem)
-            reservoir_current = self.reservoir_fc(input_spk)
-            reservoir_spk, reservoir_mem = self.reservoir_lif(reservoir_current,
-                                                              reservoir_spk,
-                                                              reservoir_mem)
-            spike_record.append(reservoir_spk.detach().cpu().numpy())
-            mem_record.append(reservoir_mem.detach().cpu().numpy())
+
+            if input_reservoir_type == "LIF":
+                
+                x_t = x[:, t, :]  # shape: (batch_size, 1)
+                input_current = self.input_fc(x_t)
+
+                input_spk, input_mem = self.input_lif(input_current, input_mem)
+                reservoir_current = self.reservoir_fc(input_spk)
+
+                reservoir_spk, reservoir_mem = self.reservoir_lif(reservoir_current,
+                                                                reservoir_spk,
+                                                                reservoir_mem)
+                spike_record.append(reservoir_spk.detach().cpu().numpy())
+                mem_record.append(reservoir_mem.detach().cpu().numpy())
+
+            elif input_reservoir_type == "Vmem":
+
+                x_t = x[:, t, :]  # shape: (batch_size, 1)
+                input_current = self.input_fc(x_t)
+
+                input_mem = self.input_lif_beta * input_mem + input_current
+                reservoir_current = self.reservoir_fc(input_mem)
+
+                reservoir_spk, reservoir_mem = self.reservoir_lif(reservoir_current,
+                                                                reservoir_spk,
+                                                                reservoir_mem)
+                spike_record.append(reservoir_spk.detach().cpu().numpy())
+                mem_record.append(reservoir_mem.detach().cpu().numpy())
+
+
+            elif input_reservoir_type == "pass_through":
+
+                x_t = x[:, t, :]  # shape: (batch_size, 1)
+                input_current = self.input_fc(x_t)
+
+                reservoir_current = self.reservoir_fc(input_current)
+
+                reservoir_spk, reservoir_mem = self.reservoir_lif(reservoir_current,
+                                                                reservoir_spk,
+                                                                reservoir_mem)
+                spike_record.append(reservoir_spk.detach().cpu().numpy())
+                mem_record.append(reservoir_mem.detach().cpu().numpy())
+
+            else:
+                raise ValueError("Please select a valid input_reservoir_type.")
+
         spike_record = np.array(spike_record)
         mem_record = np.array(mem_record)
         avg_firing_rate = spike_record.mean()

@@ -9,6 +9,7 @@ import pandas as pd
 def plot_static_3d_surface(firing_rate_grid, beta_values, threshold_values, spectral_radius, output_folder, writer):
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
+    ax.view_init(elev=30, azim=120)
     X, Y = np.meshgrid(beta_values, threshold_values)
     surf = ax.plot_surface(X, Y, firing_rate_grid, cmap='viridis', edgecolor='none')
     ax.set_xlabel('Beta Reservoir')
@@ -251,6 +252,7 @@ def plot_interactive_animated_heatmap(FR_time, beta_values, threshold_values, sp
 def animate_3d_video(FR_time, beta_values, threshold_values, spectral_radius, output_folder, fps=10):
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
+    ax.view_init(elev=30, azim=120)
     X, Y = np.meshgrid(beta_values, threshold_values)
     
     def update_frame(t):
@@ -282,5 +284,52 @@ def animate_heatmap_video(FR_time, beta_values, threshold_values, spectral_radiu
     
     ani = animation.FuncAnimation(fig, update_frame, frames=FR_time.shape[0], interval=1000/fps)
     video_path = os.path.join(output_folder, "animated_heatmap.mp4")
+    
+    # NOTE: next 2 lines could not work, try and see
+    ani = animation.FuncAnimation(fig, update_frame, frames=FR_time.shape[0], interval=1000/fps)
     ani.save(video_path, fps=fps, extra_args=['-vcodec', 'libx264'])
+
+    #ani.save(video_path, fps=fps, extra_args=['-vcodec', 'libx264'])
     plt.close(fig)
+
+    import os
+import numpy as np
+import plotly.graph_objects as go
+
+def plot_interactive_animated_3d_membrane(MP_time, beta_values, threshold_values, spectral_radius, output_folder):
+    """
+    Creates an interactive animated 3D surface plot for membrane potential.
+    MP_time is a 3D array of shape (T, n_threshold, n_beta) where each frame corresponds to the average membrane potential at that time step.
+    The threshold axis is reversed so that high values appear at the bottom.
+    """
+    T, n_thresh, n_beta = MP_time.shape
+
+    frames = []
+    for t in range(T):
+        frame = go.Frame(
+            data=[go.Surface(z=MP_time[t], x=beta_values, y=threshold_values, colorscale='Viridis')],
+            name=str(t)
+        )
+        frames.append(frame)
+        
+    initial_data = go.Surface(z=MP_time[0], x=beta_values, y=threshold_values, colorscale='Viridis')
+    fig = go.Figure(data=[initial_data], frames=frames)
+    fig.update_layout(
+        title=r"Animated 3D Membrane Potential over Time: $\rho$: " + f"{spectral_radius:.2f}",
+        scene=dict(xaxis_title="Beta Reservoir",
+                   yaxis_title="Threshold",
+                   zaxis_title="Membrane Potential"),
+        updatemenus=[dict(
+            type="buttons",
+            buttons=[
+                dict(label="Play",
+                     method="animate",
+                     args=[None, {"frame": {"duration": 100, "redraw": True}, "fromcurrent": True}]),
+                dict(label="Pause",
+                     method="animate",
+                     args=[[None], {"frame": {"duration": 0, "redraw": False},
+                                    "mode": "immediate", "transition": {"duration": 0}}])
+            ]
+        )]
+    )
+    fig.write_html(os.path.join(output_folder, "animated_3d_membrane.html"))

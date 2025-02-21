@@ -1,19 +1,22 @@
 import os
 import numpy as np
 import optuna
+import torch
 import json
 from torch.utils.tensorboard import SummaryWriter
 import LSM_imports as defs
 import LSM_plots
+import matplotlib
+matplotlib.use('Agg')
 
 # Define the objective function for Optuna.
 def objective(trial):
-    # Grid search parameters from hyperparams.
+    # Grid search parameters from hyperparams = {...}
     threshold = trial.suggest_float("threshold", hyperparams["threshold_range"][0], hyperparams["threshold_range"][1])
     beta_reservoir = trial.suggest_float("beta_reservoir", hyperparams["beta_reservoir_range"][0], hyperparams["beta_reservoir_range"][1])
     
     # Instantiate the model with hyperparameters.
-    model = defs.SpikingReservoirExp(
+    model = defs.SpikingReservoir(
         threshold=threshold,
         beta_reservoir=beta_reservoir,
         reservoir_size=hyperparams["reservoir_size"],
@@ -31,7 +34,7 @@ def objective(trial):
     if hyperparams["dataset_type"] == "TSV":
         x = defs.load_tsv_input(tsv_file, sample_index=hyperparams["tsv_sample_index"], output_folder=output_folder)
     elif hyperparams["dataset_type"] == "synthetic":
-        x = defs.generate_synthetic_input(num_steps=hyperparams["synthetic_num_steps"], threshold=max(hyperparams["threshold_range"]), pattern=hyperparams["synthetic_pattern"], output_folder=output_folder)
+        x = defs.generate_synthetic_input(num_steps=hyperparams["synthetic_num_steps"], threshold=max(hyperparams["threshold_range"]), pattern=hyperparams["synthetic_pattern"], output_folder=output_folder, noise_mean=-0.5, noise_std=1.0)
     else:
         raise ValueError("Unknown dataset type")
     
@@ -51,31 +54,31 @@ if __name__ == '__main__':
     # Define all hyperparameters in one dictionary.
     hyperparams = {
         # Device and dataset selection.
-        "device": "cpu",
+        "device": "cuda" if torch.cuda.is_available() else "cpu",
         "dataset_type": "synthetic",  # "TSV" or "synthetic"
-        "tsv_file": "/Users/mikel/Documents/GitHub/polimikel/data/UCR_dataset/Wafer/Wafer_TRAIN.tsv",
+        "tsv_file": "../data/UCR_dataset/Wafer/Wafer_TRAIN.tsv",
         "tsv_sample_index": 0,
-        "synthetic_num_steps": 1000,
+        "synthetic_num_steps": 250,
         "synthetic_pattern": "dirac",
-        "output_base_dir": "/Users/mikel/Documents/GitHub/polimikel/UCR/animated_results",
+        "output_base_dir": "../UCR/results/pos_and_neg/dirac_delta",
         
         # Model architecture.
         "reservoir_size": 100,
         "reset_delay": 0,
-        "input_lif_beta": 0.99,
+        "input_lif_beta": 0.01,
         "reset_mechanism": "zero",
         
         # Spectral initialization.
-        "init_weight_a": 0.01,
-        "init_weight_b": 2.0,
-        "spectral_radius": 1.1,
+        "init_weight_a": -1.0,
+        "init_weight_b": 1.0,
+        "spectral_radius": 2.0,
         
         # Grid search ranges for parameters to be tuned.
         "threshold_range": [0.1, 2.0],
         "beta_reservoir_range": [0.01, 0.99],
         
         # Grid search resolution.
-        "n_grid_points": 25
+        "n_grid_points": 50
     }
     
     # Create the output folder only once.
@@ -110,7 +113,7 @@ if __name__ == '__main__':
         trial.set_user_attr("tsv_file", tsv_file)
         return objective(trial)
     
-    study.optimize(objective_with_attrs, n_trials=len(threshold_values) * len(beta_values))
+    study.optimize(objective_with_attrs, n_trials=len(threshold_values) * len(beta_values), n_jobs=10) # NOTE: n_jobs=3 (for example) for parallel execution, reduce if it is too slow, or set to 1 for serial execution.
     
     # Extract grid results (static average firing rate).
     trials = study.trials
