@@ -56,11 +56,11 @@ if __name__ == '__main__':
         # Device and dataset selection.
         "device": "cuda" if torch.cuda.is_available() else "cpu",
         "dataset_type": "synthetic",  # "TSV" or "synthetic"
-        "tsv_file": "../data/UCR_dataset/Wafer/Wafer_TRAIN.tsv",
+        "tsv_file": "/home/workspaces/polimikel/data/UCR_dataset/Wafer/Wafer_TRAIN.tsv",
         "tsv_sample_index": 0,
         "synthetic_num_steps": 250,
         "synthetic_pattern": "dirac",
-        "output_base_dir": "../UCR/results/pos_and_neg/dirac_delta",
+        "output_base_dir": "/home/workspaces/polimikel/UCR/Simulation_Results",
         
         # Model architecture.
         "reservoir_size": 100,
@@ -71,7 +71,7 @@ if __name__ == '__main__':
         # Spectral initialization.
         "init_weight_a": -1.0,
         "init_weight_b": 1.0,
-        "spectral_radius": 0.5,
+        "spectral_radius": 1.0,
         
         # Grid search ranges for parameters to be tuned.
         "threshold_range": [0.1, 2.0],
