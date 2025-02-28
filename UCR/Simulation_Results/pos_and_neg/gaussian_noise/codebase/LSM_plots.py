@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # for 3D plotting
 import matplotlib.animation as animation
+from matplotlib.animation import FFMpegWriter
 import plotly.graph_objects as go
 import pandas as pd
 
@@ -192,13 +193,21 @@ def plot_interactive_animated_3d_surface(FR_time, beta_values, threshold_values,
     """
     Creates an animated 3D surface plot where FR_time is a 3D array of shape
     (T, n_threshold, n_beta) representing the firing rate at each time step.
+    The z-axis is fixed to the range [0, 1] regardless of the data.
     Also exports the animation as an HTML file.
     """
     T, n_thresh, n_beta = FR_time.shape
     frames = []
     for t in range(T):
-        frame = go.Frame(data=[go.Surface(z=FR_time[t], x=beta_values, y=threshold_values, colorscale='Viridis')],
-                         name=str(t))
+        frame = go.Frame(
+            data=[go.Surface(z=FR_time[t], x=beta_values, y=threshold_values, colorscale='Viridis')],
+            name=str(t),
+            layout=dict(
+                scene=dict(
+                    zaxis=dict(range=[0, 1], autorange=False)
+                )
+            )
+        )
         frames.append(frame)
     initial_data = go.Surface(z=FR_time[0], x=beta_values, y=threshold_values, colorscale='Viridis')
     fig = go.Figure(data=[initial_data], frames=frames)
@@ -211,16 +220,19 @@ def plot_interactive_animated_3d_surface(FR_time, beta_values, threshold_values,
         ),
         updatemenus=[dict(
             type="buttons",
-            buttons=[dict(label="Play",
-                        method="animate",
-                        args=[None, {"frame": {"duration": 100, "redraw": True}, "fromcurrent": True}]),
-                    dict(label="Pause",
-                        method="animate",
-                        args=[[None], {"frame": {"duration": 0, "redraw": False}, "mode": "immediate", "transition": {"duration": 0}}])]
+            buttons=[
+                dict(label="Play",
+                     method="animate",
+                     args=[None, {"frame": {"duration": 100, "redraw": True}, "fromcurrent": True}]),
+                dict(label="Pause",
+                     method="animate",
+                     args=[[None], {"frame": {"duration": 0, "redraw": False},
+                                    "mode": "immediate", "transition": {"duration": 0}}])
+            ]
         )]
     )
-
     fig.write_html(os.path.join(output_folder, "animated_3d_surface.html"))
+
 
 def plot_interactive_animated_heatmap(FR_time, beta_values, threshold_values, spectral_radius, output_folder):
     """
@@ -269,7 +281,9 @@ def animate_3d_video(FR_time, beta_values, threshold_values, spectral_radius, ou
     
     ani = animation.FuncAnimation(fig, update_frame, frames=FR_time.shape[0], interval=1000/fps)
     video_path = os.path.join(output_folder, "animated_3d_surface.mp4")
-    ani.save(video_path, fps=fps, extra_args=['-vcodec', 'libx264'])
+    #ani.save(video_path, fps=fps, extra_args=['-vcodec', 'libx264'])
+    writer = FFMpegWriter(fps=fps, codec='libx264')
+    ani.save(video_path, writer=writer)
     plt.close(fig)
 
 def animate_heatmap_video(FR_time, beta_values, threshold_values, spectral_radius, output_folder, fps=10):
@@ -294,7 +308,9 @@ def animate_heatmap_video(FR_time, beta_values, threshold_values, spectral_radiu
     video_path = os.path.join(output_folder, "animated_heatmap.mp4")
     
     # Save the animation
-    anim.save(video_path, fps=fps, extra_args=['-vcodec', 'libx264'])
+    #anim.save(video_path, fps=fps, extra_args=['-vcodec', 'libx264'])
+    writer = FFMpegWriter(fps=fps, codec='libx264')
+    anim.save(video_path, writer=writer)
     plt.close(fig)
 
 

@@ -172,7 +172,15 @@ class SpikingReservoir(nn.Module):
             spike_record (np.array): Recorded spikes (shape: time_steps x batch_size x reservoir_size).
             mem_record (np.array): Recorded membrane potentials (same shape).
         """
-        input_reservoir_type = "LIF"
+
+        #################################################################################################################
+        #              "LIF"              #              "Vmem"              #              "pass_through"              #     
+        #                                                                                                               #                           
+        input_reservoir_type = "pass_through"                                                                                    
+        #                                                                                                               #            
+        #                                   this level of autism is mine, not ChatGPT                                   #
+        #################################################################################################################
+
         batch_size, time_steps, _ = x.shape
         x = x.to(self.device)
         input_mem = torch.zeros(batch_size, 1, device=self.device)
