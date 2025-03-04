@@ -119,12 +119,12 @@ if __name__ == '__main__':
         "init_weight_a": -1.0,
         "init_weight_b": 1.0,
 
-        "spectral_radius": 1.0,
+        "spectral_radius": 2.0,
         
         "threshold_range": [0.1, 2.0],
         "beta_reservoir_range": [0.01, 0.99],
 
-        "n_grid_points": 15
+        "n_grid_points": 50
     }
     
     base_output_dir = hyperparams.get("output_base_dir", "./classification_output")
