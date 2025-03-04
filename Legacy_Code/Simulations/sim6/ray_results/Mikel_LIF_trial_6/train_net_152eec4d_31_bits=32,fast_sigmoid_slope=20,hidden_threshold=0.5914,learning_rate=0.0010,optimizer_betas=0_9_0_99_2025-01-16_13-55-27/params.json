@@ -1,0 +1,10 @@
+{
+  "bits": 32,
+  "fast_sigmoid_slope": 20,
+  "hidden_threshold": 0.5914067184414182,
+  "learning_rate": 0.001,
+  "optimizer_betas": [
+    0.9,
+    0.99
+  ]
+}

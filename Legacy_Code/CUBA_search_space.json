@@ -1,0 +1,19 @@
+{
+  "learning_rate": {
+    "_type": "loguniform",
+    "_value": [0.00001, 0.1]
+  },
+  "optimizer_betas": {
+    "_type": "choice",
+    "_value": [
+      [0.9, 0.999],
+      [0.95, 0.999],
+      [0.9, 0.95],
+      [0.8, 0.9]
+    ]
+  },
+  "fast_sigmoid_slope": {
+    "_type": "uniform",
+    "_value": [5.0, 50.0]
+  }
+}

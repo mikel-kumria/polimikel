@@ -1,4 +1,0 @@
-Grid Search Ranges:
-Threshold Range: [0.1, 2.0]
-Beta Reservoir Range: [0.01, 0.99]
-
