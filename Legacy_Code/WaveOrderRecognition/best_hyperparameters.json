@@ -1,0 +1,8 @@
+{
+    "threshold_hidden_min": 0.46438149062801726,
+    "threshold_hidden_max": 2.9646876910192077,
+    "beta_hidden": 0.8468230841059797,
+    "threshold_output_min": 0.4436440954754969,
+    "threshold_output_max": 9.36989913401044,
+    "beta_output": 0.2719411200662194
+}

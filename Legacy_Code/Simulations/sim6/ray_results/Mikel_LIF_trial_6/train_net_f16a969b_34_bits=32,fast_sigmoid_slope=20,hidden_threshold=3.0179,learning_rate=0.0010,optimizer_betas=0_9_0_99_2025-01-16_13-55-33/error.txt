@@ -1,0 +1,8 @@
+Failure # 1 (occurred at 2025-01-16_13-55-38)
+The actor died unexpectedly before finishing this task.
+	class_name: ImplicitFunc
+	actor_id: cbc82257f5187469a7ed4c7701000000
+	pid: 18455
+	namespace: 7b7b652e-3b3a-42cd-8c8d-8b7f7d76bda1
+	ip: 172.17.0.2
+The actor is dead because its worker process has died. Worker exit type: SYSTEM_ERROR Worker exit detail: Worker exits unexpectedly. Worker exits with an exit code Boss, we dead.

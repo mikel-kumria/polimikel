@@ -1,0 +1,12 @@
+experimentName: SNN_Hyperparameter_Tuning
+trialConcurrency: 5
+maxTrialNumber: 50
+searchSpaceFile: CUBA_search_space.json
+trialCommand: python Mikel_CUBA_script.py
+trialCodeDirectory: .
+tuner:
+  name: TPE
+  classArgs:
+    optimize_mode: maximize
+trainingService:
+  platform: local
