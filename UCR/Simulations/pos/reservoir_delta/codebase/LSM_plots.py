@@ -1,4 +1,4 @@
-# animated_plots.py
+# LSM_plots.py
 import os
 import numpy as np
 import matplotlib.pyplot as plt

@@ -26,11 +26,6 @@ class SpikingReservoirLoaded(nn.Module):
         self.device = device
         self.reservoir_size = reservoir_size
 
-        # We remove the input linear layer and input LIF.
-        # Instead, the input signal (a scalar per time step) will be directly replicated to all reservoir neurons.
-        
-        # The reservoir FC layer is also removed since we are directly injecting.
-        # We directly use the reservoir spiking dynamics.
         self.reservoir_lif = snn.RLeaky(beta=beta_reservoir,
                                         linear_features=reservoir_size,
                                         threshold=threshold,
@@ -38,7 +33,7 @@ class SpikingReservoirLoaded(nn.Module):
                                         reset_mechanism=reset_mechanism,
                                         reset_delay=reset_delay,
                                         all_to_all=True)
-        # Load the connectivity matrix from file and assign it to the recurrent weights.
+        # Connectivity matrix is loaded from the path where it was saved.
         W = torch.tensor(np.load(connectivity_matrix_path), dtype=torch.float32)
         if W.shape != (reservoir_size, reservoir_size):
             raise ValueError("Loaded connectivity matrix shape does not match reservoir_size.")
@@ -83,28 +78,7 @@ def generate_input_signal(V_threshold, time_steps=200):
     Returns a tensor of shape (1, time_steps, 1).
     """
     signal = np.zeros(time_steps, dtype=np.float32)
-    signal[0] = V_threshold
+    signal[0] = 100
+    signal[1] = 100
     input_tensor = torch.tensor(signal, dtype=torch.float32).unsqueeze(0).unsqueeze(-1)
     return input_tensor
-
-# # EXAMPLE:
-# if __name__ == '__main__':
-#     connectivity_matrix_path = "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/matrix_seed_42_uniform_20250306_145913/rho1x0/W_rescaled_rho1.0.npy"
-#     V_threshold = 1.0
-#     beta_reservoir = 0.5
-#     reservoir_size = 100
-#     device = "cpu"
-#     reset_delay = 0
-#     reset_mechanism = "zero"
-    
-#     model = SpikingReservoirLoaded(threshold=V_threshold,
-#                                    beta_reservoir=beta_reservoir,
-#                                    reservoir_size=reservoir_size,
-#                                    device=device,
-#                                    reset_delay=reset_delay,
-#                                    input_lif_beta=0.1,
-#                                    reset_mechanism=reset_mechanism,
-#                                    connectivity_matrix_path=connectivity_matrix_path)
-#     x_input = generate_input_signal(V_threshold, time_steps=200)
-#     avg_fr, spike_record, mem_record = model(x_input)
-#     print("Average firing rate:", avg_fr)
