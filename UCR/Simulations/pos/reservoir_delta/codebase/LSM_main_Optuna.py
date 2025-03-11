@@ -8,7 +8,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 # Import model and plotting functions from your codebase.
-from LSM_imports import SpikingReservoirLoaded, generate_input_signal
+from LSM_imports import SpikingReservoirLoaded, generate_input_signal, set_seed
 from LSM_plots import (
     animate_reservoir_activity,
     animate_HPO_heatmap,
@@ -38,6 +38,9 @@ hyperparams = {
     # Simulation settings.
     "time_steps": 200
 }
+
+# set all seeds
+set_seed(42)
 
 # Create an output folder.
 base_output_dir = "/home/workspaces/polimikel/UCR/Simulations/pos/reservoir_delta/Results"

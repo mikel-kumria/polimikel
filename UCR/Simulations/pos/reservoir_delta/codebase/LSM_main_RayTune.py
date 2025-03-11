@@ -15,7 +15,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from ray.air import session
 
 # Import your model and input signal generator.
-from LSM_imports import SpikingReservoirLoaded, generate_input_signal
+from LSM_imports import SpikingReservoirLoaded, generate_input_signal, set_seed
 
 # --- Import plotting functions from LSM_plots.py ---
 from LSM_plots import (
@@ -33,6 +33,9 @@ connectivity_matrix_path = "/home/workspaces/polimikel/UCR/Weight_matrices/matri
 
 # Extract a unique datetime string.
 unique_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+# setting all seeds
+set_seed(42)
 
 # Extract base name and derive a folder name.
 base_name = os.path.basename(connectivity_matrix_path)

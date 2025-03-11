@@ -33,7 +33,7 @@ class SpikingReservoirLoaded(nn.Module):
                                         reset_mechanism=reset_mechanism,
                                         reset_delay=reset_delay,
                                         all_to_all=True)
-        # Connectivity matrix is loaded from the path where it was saved.
+        # Connectivity matrix is loaded from the path which I specify
         W = torch.tensor(np.load(connectivity_matrix_path), dtype=torch.float32)
         if W.shape != (reservoir_size, reservoir_size):
             raise ValueError("Loaded connectivity matrix shape does not match reservoir_size.")
@@ -82,3 +82,15 @@ def generate_input_signal(V_threshold, time_steps=200):
     signal[1] = 100
     input_tensor = torch.tensor(signal, dtype=torch.float32).unsqueeze(0).unsqueeze(-1)
     return input_tensor
+
+def set_seed(seed = 42):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.use_deterministic_algorithms(True)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
