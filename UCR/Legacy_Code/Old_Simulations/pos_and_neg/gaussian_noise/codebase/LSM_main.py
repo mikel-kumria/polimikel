@@ -7,7 +7,21 @@ from torch.utils.tensorboard import SummaryWriter
 import LSM_imports as defs
 import LSM_plots
 import matplotlib
+import random
 matplotlib.use('Agg')
+
+def set_seed(seed = 42):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.use_deterministic_algorithms(True)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
 
 # Define the objective function for Optuna.
 def objective(trial):
@@ -52,6 +66,9 @@ def objective(trial):
 
 if __name__ == '__main__':
     # Define all hyperparameters in one dictionary.
+
+    set_seed(42)
+
     hyperparams = {
         # Device and dataset selection.
         "device": "cuda" if torch.cuda.is_available() else "cpu",
@@ -59,8 +76,8 @@ if __name__ == '__main__':
         "tsv_file": "/home/workspaces/polimikel/data/UCR_dataset/Wafer/Wafer_TRAIN.tsv",
         "tsv_sample_index": 0,
         "synthetic_num_steps": 250,
-        "synthetic_pattern": "gaussian",
-        "output_base_dir": "/home/workspaces/polimikel/UCR/Simulation_Results/pos_and_neg/gaussian_noise/Direct_pass_through_NO_integration_NO_spikes",
+        "synthetic_pattern": "dirac",
+        "output_base_dir": "/home/workspaces/polimikel/UCR/Legacy_Code/Old_Simulations/pos_and_neg/gaussian_noise/Direct_pass_through_NO_integration_NO_spikes",
         
         # Model architecture.
         "reservoir_size": 100,
@@ -78,7 +95,7 @@ if __name__ == '__main__':
         "beta_reservoir_range": [0.01, 0.99],
         
         # Grid search resolution.
-        "n_grid_points": 50
+        "n_grid_points": 10
     }
     
     # Create the output folder only once.
@@ -104,7 +121,7 @@ if __name__ == '__main__':
     search_space = {"threshold": threshold_values, "beta_reservoir": beta_values}
     
     # Set up the grid sampler.
-    sampler = optuna.samplers.GridSampler(search_space)
+    sampler = optuna.samplers.GridSampler(search_space, seed=42)
     study = optuna.create_study(sampler=sampler, direction="maximize")
     
     # Pass additional attributes to each trial.

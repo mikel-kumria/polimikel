@@ -7,6 +7,20 @@ import torch
 import torch.nn as nn
 import snntorch as snn
 import matplotlib.pyplot as plt
+import random
+
+def set_seed(seed = 42):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.use_deterministic_algorithms(True)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
 
 def create_unique_folder(base_dir):
     """
@@ -64,6 +78,8 @@ def load_tsv_input(tsv_path, sample_index=0, output_folder="."):
     return x_tensor
 
 def generate_synthetic_input(num_steps, threshold=1000.0, pattern="dirac", output_folder=".", noise_mean=0.5, noise_std=0.1, constant_value=0.5):
+
+    set_seed(42)
 
     """
     Generates a synthetic 1D time series.
@@ -131,6 +147,7 @@ class SpikingReservoir(nn.Module):
             init_weight_b (float): Upper bound.
             spectral_radius (float): Desired spectral radius for scaling the recurrent weights.
         """
+        set_seed(42)
         super(SpikingReservoir, self).__init__()
         self.device = device
         self.reservoir_size = reservoir_size
@@ -172,7 +189,7 @@ class SpikingReservoir(nn.Module):
             spike_record (np.array): Recorded spikes (shape: time_steps x batch_size x reservoir_size).
             mem_record (np.array): Recorded membrane potentials (same shape).
         """
-
+        set_seed(42)
         #################################################################################################################
         #              "LIF"              #              "Vmem"              #              "pass_through"              #     
         #                                                                                                               #                           
