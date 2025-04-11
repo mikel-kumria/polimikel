@@ -12,9 +12,8 @@ from ray.air import session
 
 # ------------------------
 def run_trial(config):
-    # Set a fixed random seed for reproducibility.
     defs.set_seed(42)
-    trial_id = uuid.uuid4().hex[:6]
+    trial_id = uuid.uuid4().hex[:6] # Unique trial ID for logging.
 
     # Create a folder for this trial inside the output folder.
     trial_folder = os.path.join(config["output_folder"], f"trial_{trial_id}")
@@ -24,7 +23,6 @@ def run_trial(config):
     writer = SummaryWriter(log_dir=os.path.join(trial_folder, "tensorboard"))
     writer.add_text("Hyperparameters", json.dumps(config, indent=2))
 
-    # Instantiate your spiking reservoir model.
     model = SpikingReservoirLoaded(
         threshold=config["threshold"],
         beta_reservoir=config["beta_reservoir"],
@@ -38,7 +36,7 @@ def run_trial(config):
     )
     model.eval()
 
-    # Generate your 50-time-step input signal.
+    # Generate 50-time-step input signal.
     x = generate_input_signal(V_threshold=config["threshold"], time_steps=50)
 
     # Run the simulation.
@@ -74,7 +72,7 @@ def run_trial(config):
 # ------------------------
 # Main block: set up hyperparameters, run trials, aggregate FR_time, then plot.
 if __name__ == '__main__':
-    # Define experiment hyperparameters.
+
     hyperparams = {
         "device": "cuda" if torch.cuda.is_available() else "cpu",
         "output_base_dir": "/Users/mikel/Documents/GitHub/polimikel/UCR/Simulations/sparse_80_20/reservoir_delta/results",
@@ -98,8 +96,8 @@ if __name__ == '__main__':
         json.dump(hyperparams, f, indent=2)
 
     # Define grid search arrays for threshold and beta_reservoir.
-    threshold_vals = np.linspace(hyperparams["threshold_range"][0], hyperparams["threshold_range"][1], 50).tolist()
-    beta_vals = np.linspace(hyperparams["beta_reservoir_range"][0], hyperparams["beta_reservoir_range"][1], 50).tolist()
+    threshold_vals = np.linspace(hyperparams["threshold_range"][0], hyperparams["threshold_range"][1], 25).tolist()
+    beta_vals = np.linspace(hyperparams["beta_reservoir_range"][0], hyperparams["beta_reservoir_range"][1], 25).tolist()
 
     # Create a configuration for ray tune that uses grid search.
     config = {
