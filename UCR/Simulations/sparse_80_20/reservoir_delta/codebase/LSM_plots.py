@@ -141,7 +141,7 @@ def plot_interactive_animated_3d_from_file(fr_time_file, beta_values, threshold_
             "type": "buttons",
             "x": 0.1,
             "xanchor": "right",
-            "y": 0,
+            "y": 1.1,
             "yanchor": "top"
         }]
     )
@@ -224,7 +224,7 @@ def plot_interactive_animated_2d_from_file(fr_time_file, beta_values, threshold_
             "showactive": False,
             "x": 0.1,
             "xanchor": "right",
-            "y": 0,
+            "y": 1.1,
             "yanchor": "top"
         }]
     )

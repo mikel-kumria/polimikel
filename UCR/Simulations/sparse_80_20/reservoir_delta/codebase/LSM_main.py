@@ -11,7 +11,6 @@ import uuid
 from ray.air import session
 
 # ------------------------
-# Define the trial function that ray.tune will run
 def run_trial(config):
     # Set a fixed random seed for reproducibility.
     defs.set_seed(42)
