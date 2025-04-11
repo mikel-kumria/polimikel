@@ -1,189 +1,166 @@
 import os
 import numpy as np
-import optuna
 import torch
 import json
 from torch.utils.tensorboard import SummaryWriter
 import LSM_imports as defs
-import LSM_plots
-import matplotlib
-matplotlib.use('Agg')
-from LSM_imports import SpikingReservoirLoaded
+from LSM_imports import SpikingReservoirLoaded, generate_input_signal, create_unique_folder, set_seed
+import ray
+from ray import tune
+import uuid
+from ray.air import session
 
-# Define the objective function for Optuna.
-def objective(trial):
-    # Grid search parameters from hyperparams.
-    threshold = trial.suggest_float("threshold", hyperparams["threshold_range"][0], hyperparams["threshold_range"][1])
-    beta_reservoir = trial.suggest_float("beta_reservoir", hyperparams["beta_reservoir_range"][0], hyperparams["beta_reservoir_range"][1])
-    
-    # Instantiate the model with hyperparameters.
+# ------------------------
+# Define the trial function that ray.tune will run
+def run_trial(config):
+    # Set a fixed random seed for reproducibility.
+    defs.set_seed(42)
+    trial_id = uuid.uuid4().hex[:6]
+
+    # Create a folder for this trial inside the output folder.
+    trial_folder = os.path.join(config["output_folder"], f"trial_{trial_id}")
+    os.makedirs(trial_folder, exist_ok=True)
+
+    # Create a TensorBoard writer for logging trial-specific data.
+    writer = SummaryWriter(log_dir=os.path.join(trial_folder, "tensorboard"))
+    writer.add_text("Hyperparameters", json.dumps(config, indent=2))
+
+    # Instantiate your spiking reservoir model.
     model = SpikingReservoirLoaded(
-        threshold=threshold,
-        beta_reservoir=beta_reservoir,
-        reservoir_size=hyperparams["reservoir_size"],
-        device=hyperparams["device"],
-        reset_delay=hyperparams["reset_delay"],
-        input_lif_beta=hyperparams["input_lif_beta"],
-        reset_mechanism=hyperparams["reset_mechanism"],
-        connectivity_matrix_path=hyperparams["connectivity_matrix_path"]
+        threshold=config["threshold"],
+        beta_reservoir=config["beta_reservoir"],
+        reservoir_size=config["reservoir_size"],
+        device=config["device"],
+        reset_delay=config["reset_delay"],
+        input_lif_beta=config["input_lif_beta"],
+        reset_mechanism=config["reset_mechanism"],
+        connectivity_matrix_path=config["connectivity_matrix_path"],
+        input_weights_path=config.get("input_weights_path", None)
     )
     model.eval()
-    
-    # Select dataset based on hyperparams["dataset_type"].
-    if hyperparams["dataset_type"] == "TSV":
-        x = defs.load_tsv_input(tsv_file, sample_index=hyperparams["tsv_sample_index"], output_folder=output_folder)
-    elif hyperparams["dataset_type"] == "synthetic":
-        x = defs.generate_synthetic_input(num_steps=hyperparams["synthetic_num_steps"],
-                                          threshold=max(hyperparams["threshold_range"]),
-                                          pattern=hyperparams["synthetic_pattern"],
-                                          output_folder=output_folder,
-                                          noise_mean=0.0, noise_std=1.0)
-    else:
-        raise ValueError("Unknown dataset type")
-    
-    avg_firing_rate, spike_record, mem_record = model(x)
-    
-    # Compute the firing rate at each time step.
-    # Assume spike_record shape is (T, batch_size, reservoir_size) and batch_size==1.
-    firing_rate_time = np.mean(spike_record.squeeze(1), axis=1)  # shape (T,)
-    trial.set_user_attr("firing_rate_time", firing_rate_time)
-    trial.set_user_attr("spike_record", spike_record)
-    trial.set_user_attr("mem_record", mem_record)
-    # If model.get_recurrent_weights() is not defined, use model.W.
-    trial.set_user_attr("weights", model.W.cpu().detach().numpy())
-    
-    return avg_firing_rate
 
+    # Generate your 50-time-step input signal.
+    x = generate_input_signal(V_threshold=config["threshold"], time_steps=50)
+
+    # Run the simulation.
+    avg_firing_rate, spike_record, mem_record = model(x)
+
+    # Log per-time-step average firing rate and histograms to TensorBoard.
+    T = spike_record.shape[0]
+    for t in range(T):
+        avg_rate_t = np.mean(spike_record[t])
+        writer.add_scalar("FiringRate/TimeStep", avg_rate_t, global_step=t)
+    writer.add_histogram("MembraneVoltage/Time0", mem_record[0].flatten(), global_step=0)
+    writer.add_histogram("MembraneVoltage/Final", mem_record[-1].flatten(), global_step=T-1)
+    writer.flush()
+    writer.close()
+
+    # Save the raw spike and membrane potential data as .npy files.
+    firing_rates_file = os.path.join(trial_folder, f"firing_rates_trial_{trial_id}.npy")
+    mem_potentials_file = os.path.join(trial_folder, f"membrane_potentials_trial_{trial_id}.npy")
+    np.save(firing_rates_file, spike_record)
+    np.save(mem_potentials_file, mem_record)
+
+    # Aggregate a per-time-step average firing rate (averaged across neurons).
+    avg_rate_time = np.mean(spike_record, axis=2).squeeze(1)  # shape: (time_steps,)
+
+    # Report the trial result (and extra fields) via session.report.
+    session.report({
+        "avg_firing_rate": avg_firing_rate,
+        "firing_rate_time": avg_rate_time,
+        "firing_rates_file": firing_rates_file,
+        "mem_potentials_file": mem_potentials_file
+    })
+
+# ------------------------
+# Main block: set up hyperparameters, run trials, aggregate FR_time, then plot.
 if __name__ == '__main__':
-    # Define all hyperparameters in one dictionary.
+    # Define experiment hyperparameters.
     hyperparams = {
-        # Device and dataset selection.
         "device": "cuda" if torch.cuda.is_available() else "cpu",
-        "dataset_type": "synthetic",  # Options: "TSV" or "synthetic"
-        "tsv_file": "/home/workspaces/polimikel/data/UCR_dataset/Wafer/Wafer_TRAIN.tsv",
-        "tsv_sample_index": 0,
-        "synthetic_num_steps": 250,
-        "synthetic_pattern": "dirac",
-        "output_base_dir": "/home/workspaces/polimikel/UCR/Simulations/neg_pos/reservoir_delta/results",
-        #"connectivity_matrix_path": "/home/workspaces/polimikel/UCR/Weight_matrices/matrix_seed_42_uniform_20250306_145913/original/W_original.npy",
-        "connectivity_matrix_path": "/home/workspaces/polimikel/UCR/Weight_matrices/neg_pos/matrix_seed_42_uniform_20250313_091411/rho10x0/W_rescaled_rho10.0.npy",
-        # Model architecture.
+        "output_base_dir": "/Users/mikel/Documents/GitHub/polimikel/UCR/Simulations/sparse_80_20/reservoir_delta/results",
+        "connectivity_matrix_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/Random_80_20/rho2x0/80_20_weights_sparsity_1_rho2/weight_matrix_seed_1.npy",
+        "input_weights_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/nnLinear_weights.npy",
         "reservoir_size": 100,
         "reset_delay": 0,
         "input_lif_beta": 0.01,
-        "reset_mechanism": "zero",
-        
-        # Spectral initialization (placeholder; will be computed later).
-        "init_weight_a": 0.0,
-        "init_weight_b": 1.0,
-        "spectral_radius": 0.0,
-        
-        # Grid search ranges for parameters to be tuned.
-        "threshold_range": [0.0, 40.0], # metti il limite superiore a 4*rho, quindi se è rho=0.5 metti 2.0
+        "reset_mechanism": "zero", # zero, none or subtract
+        "threshold_range": [0.0, 2.0],
         "beta_reservoir_range": [0.0, 1.0],
-        
-        # Grid search resolution.
-        "n_grid_points": 200
     }
-    
-    # Create the output folder only once.
-    base_output_dir = hyperparams["output_base_dir"]
-    output_folder = defs.create_unique_folder(base_output_dir)
+
+    # Create a unique folder for this experiment.
+    output_folder = defs.create_unique_folder(hyperparams["output_base_dir"])
+    hyperparams["output_folder"] = output_folder
     print("Output folder:", output_folder)
-    
-    # Save hyperparameters to a JSON file.
-    hyperparams_file = os.path.join(output_folder, "hyperparameters.json")
-    with open(hyperparams_file, "w") as f:
-        json.dump(hyperparams, f, indent=4)
-    
-    # Initialize TensorBoard writer.
-    writer = SummaryWriter(log_dir=output_folder)
-    
-    # Define the TSV file path.
-    tsv_file = hyperparams["tsv_file"]
-    
-    # Create grid search arrays.
-    n_points = hyperparams["n_grid_points"]
-    threshold_values = np.linspace(hyperparams["threshold_range"][0], hyperparams["threshold_range"][1], n_points).tolist()
-    beta_values = np.linspace(hyperparams["beta_reservoir_range"][0], hyperparams["beta_reservoir_range"][1], n_points).tolist()
-    search_space = {"threshold": threshold_values, "beta_reservoir": beta_values}
-    
-    # Set up the grid sampler.
-    sampler = optuna.samplers.GridSampler(search_space)
-    study = optuna.create_study(sampler=sampler, direction="maximize")
-    
-    # Pass additional attributes to each trial.
-    def objective_with_attrs(trial):
-        trial.set_user_attr("output_folder", output_folder)
-        trial.set_user_attr("tsv_file", tsv_file)
-        return objective(trial)
-    
-    total_trials = len(threshold_values) * len(beta_values)
-    study.optimize(objective_with_attrs, n_trials=total_trials, n_jobs=10)
-    
-    # Extract grid results (static average firing rate).
-    trials = study.trials
-    firing_rate_grid = np.zeros((len(threshold_values), len(beta_values)))
+
+    # Save hyperparameters for future reference.
+    with open(os.path.join(output_folder, "hyperparameters.json"), "w") as f:
+        json.dump(hyperparams, f, indent=2)
+
+    # Define grid search arrays for threshold and beta_reservoir.
+    threshold_vals = np.linspace(hyperparams["threshold_range"][0], hyperparams["threshold_range"][1], 50).tolist()
+    beta_vals = np.linspace(hyperparams["beta_reservoir_range"][0], hyperparams["beta_reservoir_range"][1], 50).tolist()
+
+    # Create a configuration for ray tune that uses grid search.
+    config = {
+        "threshold": tune.grid_search(threshold_vals),
+        "beta_reservoir": tune.grid_search(beta_vals),
+        "reservoir_size": hyperparams["reservoir_size"],
+        "device": hyperparams["device"],
+        "reset_delay": hyperparams["reset_delay"],
+        "input_lif_beta": hyperparams["input_lif_beta"],
+        "reset_mechanism": hyperparams["reset_mechanism"],
+        "connectivity_matrix_path": hyperparams["connectivity_matrix_path"],
+        "input_weights_path": hyperparams.get("input_weights_path", None),
+        "output_folder": hyperparams["output_folder"],
+    }
+
+    # Initialize ray and run the grid search.
+    ray.init(ignore_reinit_error=True)
+    analysis = tune.run(
+        run_trial,
+        config=config,
+        resources_per_trial={"gpu": 1} if hyperparams["device"]=="cuda" else {"cpu": 1},
+        metric="avg_firing_rate",
+        mode="max",
+        storage_path=output_folder
+    )
+    ray.shutdown()
+
+    # ------------------------
+    # Aggregate the trial results into a single FR_time array.
+    trials = analysis.trials
+    time_steps = 50  # This should match the number of time steps you used.
+    FR_time = np.zeros((time_steps, len(threshold_vals), len(beta_vals)))
     for trial in trials:
-        t_val = trial.params["threshold"]
-        b_val = trial.params["beta_reservoir"]
-        i = threshold_values.index(t_val)
-        j = beta_values.index(b_val)
-        firing_rate_grid[i, j] = trial.value
-    
-    # Build a 3D array for time evolution of firing rate.
-    rep_trial = trials[0]
-    T = len(rep_trial.user_attrs["firing_rate_time"])
-    FR_time = np.zeros((T, len(threshold_values), len(beta_values)))
-    for trial in trials:
-        t_val = trial.params["threshold"]
-        b_val = trial.params["beta_reservoir"]
-        i = threshold_values.index(t_val)
-        j = beta_values.index(b_val)
-        FR_time[:, i, j] = trial.user_attrs["firing_rate_time"]
-    
-    # Save grid search ranges to a text file.
-    rep_hyperparams_file = os.path.join(output_folder, "hyperparameters.txt")
-    with open(rep_hyperparams_file, "w") as f:
-        f.write("Grid Search Ranges:\n")
-        f.write(f"Threshold Range: {hyperparams['threshold_range']}\n")
-        f.write(f"Beta Reservoir Range: {hyperparams['beta_reservoir_range']}\n\n")
-    
-    # Retrieve representative trial data.
-    spike_record = rep_trial.user_attrs["spike_record"]   # shape: (T, 1, reservoir_size)
-    mem_record = rep_trial.user_attrs["mem_record"]
-    weights = rep_trial.user_attrs["weights"]
-    spike_record = spike_record[:, 0, :]  # remove batch dimension
-    mem_record = mem_record[:, 0, :]
-    
-    # Compute inter-spike intervals (optional for additional analysis).
-    all_intervals = []
-    for neuron in range(spike_record.shape[1]):
-        spike_times = np.where(spike_record[:, neuron] > 0)[0]
-        if len(spike_times) > 1:
-            intervals = np.diff(spike_times)
-            all_intervals.extend(intervals)
-    
-    # Compute the spectral radius from the recurrent weight matrix.
-    spectral_radius_computed = np.max(np.abs(np.linalg.eigvals(weights)))
-    
-    # Generate static plots.
-    LSM_plots.plot_static_3d_surface(firing_rate_grid, beta_values, threshold_values, spectral_radius_computed, output_folder, writer)
-    LSM_plots.plot_static_heatmap(firing_rate_grid, beta_values, threshold_values, spectral_radius_computed, output_folder, writer)
-    LSM_plots.plot_static_weight_matrix(weights, output_folder, writer)
-    
-    # Generate interactive plots.
-    LSM_plots.plot_interactive_ts_input(tsv_file, output_folder)
-    LSM_plots.plot_interactive_3d_surface(firing_rate_grid, beta_values, threshold_values, spectral_radius_computed, output_folder)
-    LSM_plots.plot_interactive_heatmap(firing_rate_grid, beta_values, threshold_values, spectral_radius_computed, output_folder)
-    
-    # Generate animated plots (HTML).
-    LSM_plots.plot_interactive_animated_3d_surface(FR_time, beta_values, threshold_values, spectral_radius_computed, output_folder)
-    LSM_plots.plot_interactive_animated_heatmap(FR_time, beta_values, threshold_values, spectral_radius_computed, output_folder)
-    
-    # Also export animated plots as videos (MP4) with adjustable frame rate.
-    LSM_plots.animate_3d_video(FR_time, beta_values, threshold_values, spectral_radius_computed, output_folder, fps=10)
-    LSM_plots.animate_heatmap_video(FR_time, beta_values, threshold_values, spectral_radius_computed, output_folder, fps=10)
-    
-    writer.close()
-    print("All static and interactive plots, videos, logs, and hyperparameters have been saved.")
+        t_val = trial.config["threshold"]
+        b_val = trial.config["beta_reservoir"]
+        i = threshold_vals.index(t_val)
+        j = beta_vals.index(b_val)
+        # We assume that the trial reports "firing_rate_time" in its last result.
+        FR_time[:, i, j] = trial.last_result["firing_rate_time"]
+
+    # Save the aggregated FR_time for later plotting.
+    fr_time_file = os.path.join(output_folder, "FR_time.npy")
+    np.save(fr_time_file, FR_time)
+    print("Grid search completed and aggregated FR_time saved as", fr_time_file)
+
+    # ------------------------
+    # Compute the spectral radius from the connectivity matrix (for the plots).
+    W = np.load(hyperparams["connectivity_matrix_path"])
+    spectral_radius = np.max(np.abs(np.linalg.eigvals(W)))
+    print("Computed spectral radius:", spectral_radius)
+
+    # ------------------------
+    import LSM_plots as plots
+
+    # Generate static plots (PNG).
+    plots.plot_all_static_3d_surfaces(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
+    plots.plot_all_static_2d_heatmaps(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
+
+    # Generate interactive animated plots (HTML files).
+    plots.plot_interactive_animated_3d_from_file(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
+    plots.plot_interactive_animated_2d_from_file(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
+
+    print("All plots have been saved in the output folder:", output_folder)
