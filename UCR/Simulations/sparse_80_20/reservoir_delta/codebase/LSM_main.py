@@ -9,6 +9,62 @@ import ray
 from ray import tune
 import uuid
 from ray.air import session
+from datetime import datetime
+
+def save_hyperparameters_log(hyperparams, output_folder):
+    """
+    Saves hyperparameters in both JSON and human-readable text formats.
+    """
+    # Save as JSON (preserve existing functionality)
+    json_path = os.path.join(output_folder, "hyperparameters.json")
+    with open(json_path, "w") as f:
+        json.dump(hyperparams, f, indent=2)
+    
+    # Create a human-readable text file
+    txt_path = os.path.join(output_folder, "hyperparameters_summary.txt")
+    with open(txt_path, "w") as f:
+        f.write("=" * 80 + "\n")
+        f.write("EXPERIMENT HYPERPARAMETERS SUMMARY\n")
+        f.write("=" * 80 + "\n\n")
+        
+        f.write(f"Experiment Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        
+        f.write("HARDWARE AND PATHS\n")
+        f.write("-" * 80 + "\n")
+        f.write(f"Device: {hyperparams['device']}\n")
+        f.write(f"Output Directory: {hyperparams['output_base_dir']}\n")
+        f.write(f"Weight Matrix Path: {hyperparams['connectivity_matrix_path']}\n")
+        if hyperparams.get('input_weights_path'):
+            f.write(f"Input Weights Path: {hyperparams['input_weights_path']}\n")
+        f.write("\n")
+        
+        f.write("NETWORK ARCHITECTURE\n")
+        f.write("-" * 80 + "\n")
+        f.write(f"Reservoir Size: {hyperparams['reservoir_size']} neurons\n")
+        f.write(f"Reset Mechanism: {hyperparams['reset_mechanism']}\n")
+        f.write(f"Reset Delay: {hyperparams['reset_delay']}\n")
+        f.write(f"Input LIF Beta: {hyperparams['input_lif_beta']}\n")
+        f.write("\n")
+        
+        f.write("PARAMETER RANGES\n")
+        f.write("-" * 80 + "\n")
+        f.write(f"Threshold Range: [{hyperparams['threshold_range'][0]}, {hyperparams['threshold_range'][1]}]\n")
+        f.write(f"Beta Reservoir Range: [{hyperparams['beta_reservoir_range'][0]}, {hyperparams['beta_reservoir_range'][1]}]\n")
+        f.write("\n")
+        
+        # Load and add spectral radius information
+        W = np.load(hyperparams["connectivity_matrix_path"])
+        spectral_radius = np.max(np.abs(np.linalg.eigvals(W)))
+        f.write("CONNECTIVITY MATRIX PROPERTIES\n")
+        f.write("-" * 80 + "\n")
+        f.write(f"Spectral Radius: {spectral_radius:.4f}\n")
+        f.write(f"Matrix Shape: {W.shape}\n")
+        f.write(f"Matrix Sparsity: {1 - np.count_nonzero(W) / W.size:.4f}\n")
+        f.write("\n")
+        
+        f.write("=" * 80 + "\n")
+        f.write("End of Hyperparameters Summary\n")
+        f.write("=" * 80 + "\n")
 
 # ------------------------
 def run_trial(config):
@@ -76,7 +132,7 @@ if __name__ == '__main__':
     hyperparams = {
         "device": "cuda" if torch.cuda.is_available() else "cpu",
         "output_base_dir": "/Users/mikel/Documents/GitHub/polimikel/UCR/Simulations/sparse_80_20/reservoir_delta/results",
-        "connectivity_matrix_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/Random_80_20/rho2x0/80_20_weights_sparsity_1_rho2/weight_matrix_seed_1.npy",
+        "connectivity_matrix_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/Random_80_20/rho1x0/80_20_weights_sparsity_0.1_rho1/weight_matrix_seed_1.npy",
         "input_weights_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/nnLinear_weights.npy",
         "reservoir_size": 100,
         "reset_delay": 0,
@@ -91,13 +147,12 @@ if __name__ == '__main__':
     hyperparams["output_folder"] = output_folder
     print("Output folder:", output_folder)
 
-    # Save hyperparameters for future reference.
-    with open(os.path.join(output_folder, "hyperparameters.json"), "w") as f:
-        json.dump(hyperparams, f, indent=2)
+    # Save detailed hyperparameters log
+    save_hyperparameters_log(hyperparams, output_folder)
 
     # Define grid search arrays for threshold and beta_reservoir.
-    threshold_vals = np.linspace(hyperparams["threshold_range"][0], hyperparams["threshold_range"][1], 25).tolist()
-    beta_vals = np.linspace(hyperparams["beta_reservoir_range"][0], hyperparams["beta_reservoir_range"][1], 25).tolist()
+    threshold_vals = np.linspace(hyperparams["threshold_range"][0], hyperparams["threshold_range"][1], 5).tolist()
+    beta_vals = np.linspace(hyperparams["beta_reservoir_range"][0], hyperparams["beta_reservoir_range"][1], 5).tolist()
 
     # Create a configuration for ray tune that uses grid search.
     config = {
@@ -159,5 +214,8 @@ if __name__ == '__main__':
     # Generate interactive animated plots (HTML files).
     plots.plot_interactive_animated_3d_from_file(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
     plots.plot_interactive_animated_2d_from_file(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
+
+    # Generate convergence time heatmap
+    plots.plot_convergence_time_heatmap(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
 
     print("All plots have been saved in the output folder:", output_folder)

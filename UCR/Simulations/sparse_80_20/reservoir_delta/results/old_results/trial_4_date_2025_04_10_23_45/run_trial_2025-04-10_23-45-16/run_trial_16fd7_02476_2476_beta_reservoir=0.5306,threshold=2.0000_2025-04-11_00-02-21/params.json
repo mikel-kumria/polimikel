@@ -1,0 +1,12 @@
+{
+  "beta_reservoir": 0.5306122448979591,
+  "connectivity_matrix_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/Random_80_20/rho1x0/80_20_weights_sparsity_0.1_rho1/weight_matrix_seed_1.npy",
+  "device": "cpu",
+  "input_lif_beta": 0.01,
+  "input_weights_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/nnLinear_weights.npy",
+  "output_folder": "/Users/mikel/Documents/GitHub/polimikel/UCR/Simulations/sparse_80_20/reservoir_delta/results/trial_4_date_2025_04_10_23_45",
+  "reservoir_size": 100,
+  "reset_delay": 0,
+  "reset_mechanism": "zero",
+  "threshold": 2.0
+}

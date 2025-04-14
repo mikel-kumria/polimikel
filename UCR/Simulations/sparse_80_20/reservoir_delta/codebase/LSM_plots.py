@@ -232,3 +232,64 @@ def plot_interactive_animated_2d_from_file(fr_time_file, beta_values, threshold_
     # Save the interactive figure as an HTML file.
     save_path = os.path.join(output_folder, "interactive_2d_animated.html")
     fig.write_html(save_path)
+
+def plot_convergence_time_heatmap(fr_time_file, beta_values, threshold_values, spectral_radius, output_folder):
+    """
+    Creates a heatmap showing how many time steps it takes for each configuration
+    (V_threshold, beta_reservoir) to reach an average firing rate below 1%.
+    If a configuration never reaches this state, it's marked with a special value.
+    """
+    FR_time = load_fr_time(fr_time_file)
+    T, n_thresh, n_beta = FR_time.shape
+    
+    # Initialize convergence time matrix
+    convergence_times = np.full((n_thresh, n_beta), T)  # Default to max time steps
+    
+    # For each configuration, find when firing rate goes below 1%
+    for i in range(n_thresh):
+        for j in range(n_beta):
+            firing_rates = FR_time[:, i, j]
+            # Find first time step where firing rate < 1%
+            below_threshold = np.where(firing_rates < 0.01)[0]
+            if len(below_threshold) > 0:
+                convergence_times[i, j] = below_threshold[0]
+    
+    # Create the plot with extra space on the right for the colorbar
+    fig = plt.figure(figsize=(12, 8))
+    
+    # Create a masked array for converging cases
+    converging = convergence_times < T
+    masked_convergence = np.ma.masked_where(~converging, convergence_times)
+    
+    # Create a masked array for non-converging cases
+    non_converging = convergence_times >= T
+    masked_non_converging = np.ma.masked_where(~non_converging, convergence_times)
+    
+    # Plot converging cases with viridis colormap
+    im1 = plt.imshow(masked_convergence, origin='lower', aspect='auto',
+                    extent=[min(beta_values), max(beta_values), min(threshold_values), max(threshold_values)],
+                    cmap='viridis')
+    
+    # Plot non-converging cases in black
+    plt.imshow(masked_non_converging, origin='lower', aspect='auto',
+               extent=[min(beta_values), max(beta_values), min(threshold_values), max(threshold_values)],
+               cmap=plt.cm.colors.ListedColormap(['black']))
+    
+    # Add colorbar for convergence times
+    cbar = plt.colorbar(im1, label='Time steps to <1% firing rate')
+    
+    # Add text annotation for non-converging cases
+    plt.figtext(0.99, 0.02, f'Black = no convergence in {T} time steps',
+                horizontalalignment='right', fontsize=9)
+    
+    plt.xlabel('Beta Reservoir')
+    plt.ylabel('V_threshold')
+    plt.title(f"Convergence Time Heatmap (ρ: {spectral_radius:.2f})")
+    
+    # Adjust layout to prevent overlapping
+    plt.tight_layout()
+    
+    # Save the plot
+    save_path = os.path.join(output_folder, "convergence_time_heatmap.png")
+    plt.savefig(save_path, dpi=600, bbox_inches='tight')
+    plt.close(fig)
