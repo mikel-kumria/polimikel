@@ -125,36 +125,30 @@ def run_trial(config):
         "mem_potentials_file": mem_potentials_file
     })
 
-# ------------------------
-# Main block: set up hyperparameters, run trials, aggregate FR_time, then plot.
-if __name__ == '__main__':
-
-    hyperparams = {
-        "device": "cuda" if torch.cuda.is_available() else "cpu",
-        "output_base_dir": "/Users/mikel/Documents/GitHub/polimikel/UCR/Simulations/sparse_80_20/reservoir_delta/results",
-        "connectivity_matrix_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/Random_80_20/rho1x0/80_20_weights_sparsity_0.1_rho1/weight_matrix_seed_1.npy",
-        "input_weights_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/nnLinear_weights.npy",
-        "reservoir_size": 100,
-        "reset_delay": 0,
-        "input_lif_beta": 0.01,
-        "reset_mechanism": "zero", # zero, none or subtract
-        "threshold_range": [0.0, 2.0],
-        "beta_reservoir_range": [0.0, 1.0],
-    }
-
-    # Create a unique folder for this experiment.
-    output_folder = defs.create_unique_folder(hyperparams["output_base_dir"])
+def run_experiment(hyperparams):
+    """
+    Run a single LSM experiment with the given hyperparameters.
+    This function is called by both the main script and parallel experiments.
+    """
+    # Create output folder if it doesn't exist
+    output_folder = hyperparams.get("output_folder", 
+                                  create_unique_folder(hyperparams["output_base_dir"]))
     hyperparams["output_folder"] = output_folder
-    print("Output folder:", output_folder)
+    print(f"Running experiment in output folder: {output_folder}")
 
     # Save detailed hyperparameters log
     save_hyperparameters_log(hyperparams, output_folder)
 
-    # Define grid search arrays for threshold and beta_reservoir.
-    threshold_vals = np.linspace(hyperparams["threshold_range"][0], hyperparams["threshold_range"][1], 5).tolist()
-    beta_vals = np.linspace(hyperparams["beta_reservoir_range"][0], hyperparams["beta_reservoir_range"][1], 5).tolist()
+    # Define grid search arrays for threshold and beta_reservoir
+    n_points = hyperparams.get("grid_points", 5)
+    threshold_vals = np.linspace(hyperparams["threshold_range"][0], 
+                               hyperparams["threshold_range"][1], 
+                               n_points).tolist()
+    beta_vals = np.linspace(hyperparams["beta_reservoir_range"][0], 
+                           hyperparams["beta_reservoir_range"][1], 
+                           n_points).tolist()
 
-    # Create a configuration for ray tune that uses grid search.
+    # Create a configuration for ray tune that uses grid search
     config = {
         "threshold": tune.grid_search(threshold_vals),
         "beta_reservoir": tune.grid_search(beta_vals),
@@ -168,7 +162,7 @@ if __name__ == '__main__':
         "output_folder": hyperparams["output_folder"],
     }
 
-    # Initialize ray and run the grid search.
+    # Initialize ray and run the grid search
     ray.init(ignore_reinit_error=True)
     analysis = tune.run(
         run_trial,
@@ -176,46 +170,58 @@ if __name__ == '__main__':
         resources_per_trial={"gpu": 1} if hyperparams["device"]=="cuda" else {"cpu": 1},
         metric="avg_firing_rate",
         mode="max",
-        storage_path=output_folder
+        storage_path=hyperparams.get("storage_path", os.path.join(output_folder, "ray_storage"))
     )
     ray.shutdown()
 
     # ------------------------
-    # Aggregate the trial results into a single FR_time array.
+    # Aggregate the trial results into a single FR_time array
     trials = analysis.trials
-    time_steps = 50  # This should match the number of time steps you used.
+    time_steps = 50  # This should match the number of time steps you used
     FR_time = np.zeros((time_steps, len(threshold_vals), len(beta_vals)))
     for trial in trials:
         t_val = trial.config["threshold"]
         b_val = trial.config["beta_reservoir"]
         i = threshold_vals.index(t_val)
         j = beta_vals.index(b_val)
-        # We assume that the trial reports "firing_rate_time" in its last result.
         FR_time[:, i, j] = trial.last_result["firing_rate_time"]
 
-    # Save the aggregated FR_time for later plotting.
+    # Save the aggregated FR_time for later plotting
     fr_time_file = os.path.join(output_folder, "FR_time.npy")
     np.save(fr_time_file, FR_time)
-    print("Grid search completed and aggregated FR_time saved as", fr_time_file)
 
     # ------------------------
-    # Compute the spectral radius from the connectivity matrix (for the plots).
+    # Compute the spectral radius from the connectivity matrix (for the plots)
     W = np.load(hyperparams["connectivity_matrix_path"])
     spectral_radius = np.max(np.abs(np.linalg.eigvals(W)))
-    print("Computed spectral radius:", spectral_radius)
 
     # ------------------------
     import LSM_plots as plots
 
-    # Generate static plots (PNG).
+    # Generate all plots
     plots.plot_all_static_3d_surfaces(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
     plots.plot_all_static_2d_heatmaps(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
-
-    # Generate interactive animated plots (HTML files).
     plots.plot_interactive_animated_3d_from_file(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
     plots.plot_interactive_animated_2d_from_file(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
-
-    # Generate convergence time heatmap
     plots.plot_convergence_time_heatmap(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
 
-    print("All plots have been saved in the output folder:", output_folder)
+    print(f"Experiment completed. All results saved in: {output_folder}")
+    return output_folder
+
+if __name__ == '__main__':
+    # Default hyperparameters when running as main script
+    hyperparams = {
+        "device": "cuda" if torch.cuda.is_available() else "cpu",
+        "output_base_dir": "/Users/mikel/Documents/GitHub/polimikel/UCR/Simulations/sparse_80_20/reservoir_delta/results",
+        "connectivity_matrix_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/Random_80_20/rho1x0/80_20_weights_sparsity_0.1_rho1/weight_matrix_seed_1.npy",
+        "input_weights_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/nnLinear_weights.npy",
+        "reservoir_size": 100,
+        "reset_delay": 0,
+        "input_lif_beta": 0.01,
+        "reset_mechanism": "zero",  # zero, none or subtract
+        "threshold_range": [0.0, 2.0],
+        "beta_reservoir_range": [0.0, 1.0],
+        "grid_points": 5  # Number of points in the grid search
+    }
+
+    run_experiment(hyperparams)
