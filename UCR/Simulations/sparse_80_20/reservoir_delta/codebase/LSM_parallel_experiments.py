@@ -241,16 +241,16 @@ EXPERIMENT_CONFIG = {
         },
         
         # Specify which spectral radii to use
-        "spectral_radii": ["rho0x5"],  # Example: only these three
+        "spectral_radii": ["rho0x5", "rho2x0"],  # Example: only these three
         
         # Specify which sparsity values to use
         "sparsities": ["0.1", "0.9"],
         
         # Specify which matrix seeds to use
-        "matrix_seeds": [1, 2],
+        "matrix_seeds": [1],
         
         # Specify which input weight seeds to use
-        "input_seeds": [1, 2]
+        "input_seeds": [1,2]
     }
 }
 
@@ -491,29 +491,69 @@ def main():
     )
     os.makedirs(base_output_dir, exist_ok=True)
     
-    # Create a shorter path for Ray's temporary files
-    ray_temp_dir = os.path.expanduser("~/ray_temp")
+    # Create a very short path with a unique ID for Ray's temporary files
+    # macOS has a 104-byte limit for Unix domain socket paths
+    unique_id = os.urandom(4).hex()
+    ray_temp_dir = f"/tmp/ray_{unique_id}"
     os.makedirs(ray_temp_dir, exist_ok=True)
+    print(f"Using Ray temp directory: {ray_temp_dir}")
     
     # Initialize Ray with proper configuration
     try:
-        # Try to initialize with all available resources and local temp dir
+        # First, ensure any existing Ray instance is shut down
+        try:
+            ray.shutdown()
+        except:
+            pass
+            
+        # Get number of CPU cores
+        num_cpus = os.cpu_count()
+        print(f"\nDetected {num_cpus} CPU cores")
+        
+        # Create a unique session ID for this run
+        session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Create a dedicated temporary directory for this session
+        session_temp_dir = os.path.join(ray_temp_dir, f"session_{session_id}")
+        os.makedirs(session_temp_dir, exist_ok=True)
+        
+        # Set environment variables for Ray
+        os.environ["RAY_TMPDIR"] = session_temp_dir
+        os.environ["RAY_SESSION_DIR"] = session_temp_dir
+        
+        # Try to initialize with proper resource allocation
         ray.init(
-            _temp_dir=ray_temp_dir,
+            _temp_dir=session_temp_dir,
             ignore_reinit_error=True,
             include_dashboard=False,  # Disable dashboard to avoid port conflicts
-            log_to_driver=False  # Disable logging to driver to avoid file access issues
+            log_to_driver=False,  # Disable logging to driver to avoid file access issues
+            num_cpus=num_cpus,  # Use all available CPU cores
+            local_mode=False,  # Enable parallel execution
+            object_store_memory=2 * 1024 * 1024 * 1024,  # 2GB object store
+            _system_config={
+                "object_spilling_config": json.dumps({
+                    "type": "filesystem",
+                    "params": {
+                        "directory_path": session_temp_dir
+                    }
+                })
+            }
         )
         
         # Check available resources
         resources = ray.available_resources()
         has_gpu = 'GPU' in resources and resources['GPU'] > 0
+        num_cpus_available = resources.get('CPU', 0)
+        
+        print(f"Ray initialized with {num_cpus_available} CPU cores available")
+        if has_gpu:
+            print(f"GPU detected: {resources['GPU']} available")
         
         if not has_gpu:
             print("\nNo GPU detected. Running experiments on CPU only.")
             # Redefine the run_single_experiment without GPU requirement
             global run_single_experiment
-            @ray.remote
+            @ray.remote(num_cpus=1)  # Allocate 1 CPU per experiment
             def run_single_experiment(params):
                 try:
                     # Create experiment folder
@@ -525,6 +565,9 @@ def main():
                     # Create storage directory for Ray
                     ray_storage = os.path.join(output_folder, "ray_storage")
                     os.makedirs(ray_storage, exist_ok=True)
+                    
+                    # Set environment variables for this specific experiment
+                    os.environ["RAY_TMPDIR"] = ray_storage
                     
                     # Prepare hyperparameters for this experiment
                     hyperparams = {
@@ -558,14 +601,16 @@ def main():
                     }
     except Exception as e:
         print(f"\nError initializing Ray: {str(e)}")
-        print("Trying to initialize Ray without any specific resource requirements...")
-        # Try to initialize Ray without any specific resource requirements
+        print("Trying to initialize Ray with minimal configuration...")
+        # Try to initialize Ray with minimal configuration
         ray.shutdown()
         ray.init(
-            _temp_dir=ray_temp_dir,
+            _temp_dir=session_temp_dir,  # Use the same session temp dir
             ignore_reinit_error=True,
             include_dashboard=False,
-            log_to_driver=False
+            log_to_driver=False,
+            num_cpus=2,  # At least try to use 2 cores
+            object_store_memory=1 * 1024 * 1024 * 1024  # 1GB object store
         )
     
     # Discover matrices matching our parameters
@@ -618,15 +663,40 @@ def main():
     # Wait for all experiments to complete
     print(f"\nLaunched {len(experiment_futures)} experiments. Waiting for completion...")
     try:
-        results = ray.get(experiment_futures)
+        # Use get_next instead of ray.get to handle errors more gracefully
+        results = []
+        ready_futures, remaining_futures = experiment_futures, []
         
+        while ready_futures:
+            # Get next result as it completes (timeout after 30 minutes)
+            ready, remaining_futures = ray.wait(
+                ready_futures, 
+                timeout=1800,  # 30 minute timeout
+                num_returns=1
+            )
+            
+            if ready:
+                try:
+                    result = ray.get(ready[0])
+                    results.append(result)
+                    print(f"Completed experiment {len(results)}/{len(experiment_futures)}")
+                except Exception as e:
+                    print(f"Error in experiment: {str(e)}")
+                    results.append({"status": "failed", "error": str(e)})
+            
+            ready_futures = remaining_futures
+            
         # Check for failed experiments
-        failed_experiments = [r for r in results if r["status"] == "failed"]
+        failed_experiments = [r for r in results if r.get("status") == "failed"]
         if failed_experiments:
             print("\nWarning: Some experiments failed:")
-            for failed in failed_experiments:
-                print(f"  Error in experiment with params: {failed['params']}")
-                print(f"  Error message: {failed['error']}")
+            for failed in failed_experiments[:5]:  # Show at most 5 failures
+                print(f"  Error in experiment with params: {failed.get('params', 'Unknown')}")
+                print(f"  Error message: {failed.get('error', 'Unknown error')}")
+            
+            if len(failed_experiments) > 5:
+                print(f"  ...and {len(failed_experiments) - 5} more failures.")
+                
     except Exception as e:
         print(f"\nError while running experiments: {str(e)}")
         results = []
@@ -637,12 +707,32 @@ def main():
         json.dump({
             "config": EXPERIMENT_CONFIG,
             "matrices_found": matrices,
-            "results": results,
+            "results": [r for r in results if isinstance(r, dict)],  # Filter out non-dict results
             "timestamp": datetime.now().isoformat()
         }, f, indent=2)
     
     # Clean up Ray
-    ray.shutdown()
+    print("\nCleaning up resources...")
+    try:
+        ray.shutdown()
+        print("Ray shutdown successful.")
+    except Exception as e:
+        print(f"Error during Ray shutdown: {str(e)}")
+    
+    # Clean up any stray Ray processes with a system call
+    try:
+        import subprocess
+        subprocess.run(["pkill", "-f", "ray"], stderr=subprocess.DEVNULL)
+    except:
+        pass
+    
+    # Clean up the temporary directory
+    try:
+        if os.path.exists(ray_temp_dir):
+            shutil.rmtree(ray_temp_dir)
+            print(f"Removed Ray temp directory: {ray_temp_dir}")
+    except Exception as e:
+        print(f"Error cleaning up Ray temp directory: {str(e)}")
     
     print(f"\nAll experiments completed. Results saved in: {base_output_dir}")
 

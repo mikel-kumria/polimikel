@@ -195,29 +195,33 @@ class InteractivePlotter:
                     title='Firing Rate',
                     thickness=15,
                     len=0.7,
-                    x=1.02,  # Move colorbar to the left to avoid overlap with dropdowns
+                    x=1.02,
                     title_side='right'
-                )
+                ),
+                # Set showscale to False for all but the first one
+                showscale=False
             ))
         
-        # Make first trace visible
+        # Make first trace visible and show its colorbar
         fig.data[0].visible = True
+        fig.data[0].showscale = True
         
-        # Create frames for animation
+        # Create frames for animation without colorbars in the frame data
         frames = []
         for t in range(self.fr_time_data[list(self.fr_time_data.keys())[0]].shape[0]):
             frame_data = []
-            for fr_time in self.fr_time_data.values():
+            for i, fr_time in enumerate(self.fr_time_data.values()):
                 frame_data.append(go.Heatmap(
                     z=fr_time[t],
                     x=self.beta_values,
                     y=self.threshold_values,
                     colorscale='Viridis',
+                    showscale=i == 0,  # Only show scale for the first trace
                     colorbar=dict(
                         title='Firing Rate',
                         thickness=15,
                         len=0.7,
-                        x=1.02,  # Move colorbar to the left to avoid overlap with dropdowns
+                        x=1.02,
                         title_side='right'
                     )
                 ))
@@ -283,7 +287,7 @@ class InteractivePlotter:
                     'args': [
                         [str(t)],
                         {
-                            'frame': {'duration': 100, 'redraw': True},
+                            'frame': {'duration': 100, "redraw": True},
                             'mode': 'immediate',
                             'transition': {'duration': 100}
                         }
@@ -299,7 +303,7 @@ class InteractivePlotter:
             'tickwidth': 2
         }]
         
-        # Update layout
+        # Update layout with uirevision to maintain consistent colorbar across frames
         fig.update_layout(
             title='2D Firing Rate Heatmap',
             title_font=dict(size=18),
@@ -307,7 +311,7 @@ class InteractivePlotter:
             yaxis_title='V_threshold',
             height=800,
             width=1200,
-            margin=dict(r=300, t=80, l=80, b=120),  # Increase right margin significantly
+            margin=dict(r=300, t=80, l=80, b=120),
             updatemenus=updatemenus,
             annotations=annotations,
             sliders=sliders,
@@ -318,7 +322,8 @@ class InteractivePlotter:
                 bgcolor="white",
                 font_size=14,
                 font_family="Arial, sans-serif"
-            )
+            ),
+            uirevision=True  # Important for maintaining colorbar consistency
         )
         
         fig.write_html(output_file)
@@ -340,7 +345,7 @@ class InteractivePlotter:
                     title='Firing Rate',
                     thickness=15,
                     len=0.7,
-                    x=1.02,  # Move colorbar to the left to avoid overlap with dropdowns
+                    x=1.02,
                     title_side='right'
                 ),
                 lighting=dict(
@@ -351,27 +356,31 @@ class InteractivePlotter:
                 ),
                 contours=dict(
                     z=dict(show=True, usecolormap=True, highlightcolor="white", project_z=True)
-                )
+                ),
+                # Set showscale to False for all but the first one
+                showscale=False
             ))
         
-        # Make first trace visible
+        # Make first trace visible and show its colorbar
         fig.data[0].visible = True
+        fig.data[0].showscale = True
         
-        # Create frames for animation
+        # Create frames for animation without colorbars in the frame data
         frames = []
         for t in range(self.fr_time_data[list(self.fr_time_data.keys())[0]].shape[0]):
             frame_data = []
-            for fr_time in self.fr_time_data.values():
+            for i, fr_time in enumerate(self.fr_time_data.values()):
                 frame_data.append(go.Surface(
                     z=fr_time[t],
                     x=self.beta_values,
                     y=self.threshold_values,
                     colorscale='Viridis',
+                    showscale=i == 0,  # Only show scale for the first trace
                     colorbar=dict(
                         title='Firing Rate',
                         thickness=15,
                         len=0.7,
-                        x=1.02,  # Move colorbar to the left to avoid overlap with dropdowns
+                        x=1.02,
                         title_side='right'
                     ),
                     lighting=dict(
@@ -446,7 +455,7 @@ class InteractivePlotter:
                     'args': [
                         [str(t)],
                         {
-                            'frame': {'duration': 100, 'redraw': True},
+                            'frame': {'duration': 100, "redraw": True},
                             'mode': 'immediate',
                             'transition': {'duration': 100}
                         }
@@ -462,7 +471,7 @@ class InteractivePlotter:
             'tickwidth': 2
         }]
         
-        # Update layout
+        # Update layout with uirevision to maintain consistent colorbar across frames
         fig.update_layout(
             title='3D Firing Rate Surface',
             title_font=dict(size=18),
@@ -477,7 +486,7 @@ class InteractivePlotter:
             ),
             height=800,
             width=1200,
-            margin=dict(r=300, t=80, l=10, b=10, pad=0),  # Increase right margin significantly
+            margin=dict(r=300, t=80, l=10, b=10, pad=0),
             updatemenus=updatemenus,
             annotations=annotations,
             sliders=sliders,
@@ -487,7 +496,8 @@ class InteractivePlotter:
                 bgcolor="white",
                 font_size=14,
                 font_family="Arial, sans-serif"
-            )
+            ),
+            uirevision=True  # Important for maintaining colorbar consistency
         )
         
         fig.write_html(output_file)

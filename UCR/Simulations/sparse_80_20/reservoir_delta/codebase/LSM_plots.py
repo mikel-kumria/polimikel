@@ -378,52 +378,111 @@ def plot_convergence_time_heatmap(fr_time_file, beta_values, threshold_values, s
 
 def create_animations_from_static_plots(fr_time_file, beta_values, threshold_values, spectral_radius, output_folder):
     """
-    Creates video animations from the FR_time data at 4 FPS for both 2D and 3D visualizations.
-    Should be called after generating static plots.
+    Creates video animations by combining the existing static plot images.
+    Uses the previously generated PNG files in static2Dplots and static3Dplots folders.
     """
     # Create the video subfolder
     video_dir = os.path.join(output_folder, "videos")
     os.makedirs(video_dir, exist_ok=True)
     
+    # Get the number of time steps
     FR_time = load_fr_time(fr_time_file)
     T = FR_time.shape[0]
     
-    # Create 2D animation
-    fig_2d, ax_2d = plt.subplots(figsize=(8, 6))
-    
-    def animate_2d(t):
-        ax_2d.clear()
-        FR = FR_time[t]
-        im = ax_2d.imshow(FR, origin='lower', aspect='auto',
-                         extent=[min(beta_values), max(beta_values), min(threshold_values), max(threshold_values)],
-                         cmap='viridis')
-        if t == 0:  # Only add colorbar on first frame
-            plt.colorbar(im, label='Avg Firing Rate')
-        ax_2d.set_xlabel('Beta Reservoir')
-        ax_2d.set_ylabel('V_threshold')
-        ax_2d.set_title(f"2D Heatmap at Time Step {t} (ρ: {spectral_radius:.2f})")
-        return [im]
-    
-    anim_2d = animation.FuncAnimation(fig_2d, animate_2d, frames=T, interval=250, blit=True)
-    anim_2d.save(os.path.join(video_dir, "2d_heatmap_animation.mp4"), writer='ffmpeg', fps=4)
-    plt.close(fig_2d)
-    
-    # Create 3D animation
-    fig_3d = plt.figure(figsize=(10, 8))
-    ax_3d = fig_3d.add_subplot(111, projection='3d')
-    X, Y = np.meshgrid(beta_values, threshold_values)
-    
-    def animate_3d(t):
-        ax_3d.clear()
-        FR = FR_time[t]
-        surf = ax_3d.plot_surface(X, Y, FR, cmap='viridis', edgecolor='none')
-        ax_3d.view_init(elev=30, azim=120)
-        ax_3d.set_xlabel('Beta Reservoir')
-        ax_3d.set_ylabel('V_threshold')
-        ax_3d.set_zlabel('Avg Firing Rate')
-        ax_3d.set_title(f"3D Surface at Time Step {t} (ρ: {spectral_radius:.2f})")
-        return [surf]
-    
-    anim_3d = animation.FuncAnimation(fig_3d, animate_3d, frames=T, interval=250, blit=False)
-    anim_3d.save(os.path.join(video_dir, "3d_surface_animation.mp4"), writer='ffmpeg', fps=4)
-    plt.close(fig_3d)
+    # Create animation from 2D static images
+    try:
+        # Import imageio for creating videos from images
+        import imageio
+        
+        # Path to 2D static images
+        static2D_dir = os.path.join(output_folder, "static2Dplots")
+        if os.path.exists(static2D_dir):
+            # Get all 2D heatmap PNG files and sort them by time step
+            image_files_2d = sorted(
+                [os.path.join(static2D_dir, f) for f in os.listdir(static2D_dir) if f.startswith('2d_heatmap_t') and f.endswith('.png')],
+                key=lambda x: int(os.path.basename(x).split('t')[1].split('.')[0])  # Extract time step number for sorting
+            )
+            
+            if image_files_2d:
+                # Create output video file path
+                output_video_2d = os.path.join(video_dir, "2d_heatmap_animation.mp4")
+                
+                # Load images and create video
+                with imageio.get_writer(output_video_2d, fps=4) as writer:
+                    for image_file in image_files_2d:
+                        image = imageio.imread(image_file)
+                        writer.append_data(image)
+                
+                print(f"Created 2D animation from {len(image_files_2d)} static images: {output_video_2d}")
+            else:
+                print("No 2D static images found to create animation.")
+        
+        # Path to 3D static images
+        static3D_dir = os.path.join(output_folder, "static3Dplots")
+        if os.path.exists(static3D_dir):
+            # Get all 3D surface PNG files and sort them by time step
+            image_files_3d = sorted(
+                [os.path.join(static3D_dir, f) for f in os.listdir(static3D_dir) if f.startswith('3d_surface_t') and f.endswith('.png')],
+                key=lambda x: int(os.path.basename(x).split('t')[1].split('.')[0])  # Extract time step number for sorting
+            )
+            
+            if image_files_3d:
+                # Create output video file path
+                output_video_3d = os.path.join(video_dir, "3d_surface_animation.mp4")
+                
+                # Load images and create video
+                with imageio.get_writer(output_video_3d, fps=4) as writer:
+                    for image_file in image_files_3d:
+                        image = imageio.imread(image_file)
+                        writer.append_data(image)
+                
+                print(f"Created 3D animation from {len(image_files_3d)} static images: {output_video_3d}")
+            else:
+                print("No 3D static images found to create animation.")
+                
+    except ImportError:
+        print("Could not import imageio. Falling back to matplotlib animation...")
+        # Fallback to the original animation creation using matplotlib if imageio is not available
+        
+        # Create 2D animation using matplotlib (fallback method)
+        fig_2d, ax_2d = plt.subplots(figsize=(8, 6))
+        
+        def animate_2d(t):
+            ax_2d.clear()
+            FR = FR_time[t]
+            im = ax_2d.imshow(FR, origin='lower', aspect='auto',
+                             extent=[min(beta_values), max(beta_values), min(threshold_values), max(threshold_values)],
+                             cmap='viridis')
+            if t == 0:  # Only add colorbar on first frame
+                plt.colorbar(im, label='Avg Firing Rate')
+            ax_2d.set_xlabel('Beta Reservoir')
+            ax_2d.set_ylabel('V_threshold')
+            ax_2d.set_title(f"2D Heatmap at Time Step {t} (ρ: {spectral_radius:.2f})")
+            return [im]
+        
+        anim_2d = animation.FuncAnimation(fig_2d, animate_2d, frames=T, interval=250, blit=True)
+        anim_2d.save(os.path.join(video_dir, "2d_heatmap_animation_fallback.mp4"), writer='ffmpeg', fps=4)
+        plt.close(fig_2d)
+        
+        # Create 3D animation using matplotlib (fallback method)
+        fig_3d = plt.figure(figsize=(10, 8))
+        ax_3d = fig_3d.add_subplot(111, projection='3d')
+        X, Y = np.meshgrid(beta_values, threshold_values)
+        
+        def animate_3d(t):
+            ax_3d.clear()
+            FR = FR_time[t]
+            surf = ax_3d.plot_surface(X, Y, FR, cmap='viridis', edgecolor='none')
+            ax_3d.view_init(elev=30, azim=120)
+            ax_3d.set_xlabel('Beta Reservoir')
+            ax_3d.set_ylabel('V_threshold')
+            ax_3d.set_zlabel('Avg Firing Rate')
+            ax_3d.set_title(f"3D Surface at Time Step {t} (ρ: {spectral_radius:.2f})")
+            return [surf]
+        
+        anim_3d = animation.FuncAnimation(fig_3d, animate_3d, frames=T, interval=250, blit=False)
+        anim_3d.save(os.path.join(video_dir, "3d_surface_animation_fallback.mp4"), writer='ffmpeg', fps=4)
+        plt.close(fig_3d)
+        
+    except Exception as e:
+        print(f"Error creating animations from static images: {str(e)}")
