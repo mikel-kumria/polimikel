@@ -428,6 +428,62 @@ def run_single_experiment(params):
     # Run the experiment
     LSM_main.run_experiment(hyperparams)
     
+    # After experiment completes, generate plots for each trial
+    trial_dirs = [d for d in os.listdir(output_folder) if d.startswith('trial_') and os.path.isdir(os.path.join(output_folder, d))]
+    
+    for trial_dir in trial_dirs:
+        trial_path = os.path.join(output_folder, trial_dir)
+        trial_subdirs = [d for d in os.listdir(trial_path) if d.startswith('trial_') and os.path.isdir(os.path.join(trial_path, d))]
+        
+        for subdir in trial_subdirs:
+            subdir_path = os.path.join(trial_path, subdir)
+            
+            # Check if FR_time.npy exists
+            fr_time_path = os.path.join(subdir_path, 'FR_time.npy')
+            if os.path.exists(fr_time_path):
+                # Generate beta and threshold values
+                beta_values = np.linspace(
+                    hyperparams["beta_reservoir_range"][0],
+                    hyperparams["beta_reservoir_range"][1],
+                    hyperparams["grid_points"]
+                )
+                threshold_values = np.linspace(
+                    hyperparams["threshold_range"][0],
+                    hyperparams["threshold_range"][1],
+                    hyperparams["grid_points"]
+                )
+                
+                # Import plotting functions
+                from LSM_plots import (
+                    plot_all_static_2d_heatmaps,
+                    plot_all_static_3d_surfaces,
+                    create_animations_from_static_plots
+                )
+                
+                # Generate all plots
+                print(f"\nGenerating plots for {subdir_path}")
+                plot_all_static_2d_heatmaps(
+                    fr_time_path,
+                    beta_values,
+                    threshold_values,
+                    params["spectral_radius"],
+                    subdir_path
+                )
+                plot_all_static_3d_surfaces(
+                    fr_time_path,
+                    beta_values,
+                    threshold_values,
+                    params["spectral_radius"],
+                    subdir_path
+                )
+                create_animations_from_static_plots(
+                    fr_time_path,
+                    beta_values,
+                    threshold_values,
+                    params["spectral_radius"],
+                    subdir_path
+                )
+    
     return {
         "status": "completed",
         "output_folder": output_folder,
@@ -506,9 +562,11 @@ def main():
         except:
             pass
             
-        # Get number of CPU cores
+        # Get number of CPU cores and calculate optimal worker count
         num_cpus = os.cpu_count()
-        print(f"\nDetected {num_cpus} CPU cores")
+        # Use 75% of available CPUs to leave some for system processes
+        num_workers = max(1, int(num_cpus * 0.75))
+        print(f"\nDetected {num_cpus} CPU cores, using {num_workers} workers")
         
         # Create a unique session ID for this run
         session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -527,7 +585,7 @@ def main():
             ignore_reinit_error=True,
             include_dashboard=False,  # Disable dashboard to avoid port conflicts
             log_to_driver=False,  # Disable logging to driver to avoid file access issues
-            num_cpus=num_cpus,  # Use all available CPU cores
+            num_cpus=num_workers,  # Use calculated number of workers
             local_mode=False,  # Enable parallel execution
             object_store_memory=2 * 1024 * 1024 * 1024,  # 2GB object store
             _system_config={
@@ -536,7 +594,10 @@ def main():
                     "params": {
                         "directory_path": session_temp_dir
                     }
-                })
+                }),
+                "max_worker_processes": num_workers,  # Limit worker processes
+                "task_retry_delay_ms": 1000,  # Add delay between retries
+                "object_timeout_milliseconds": 30000  # Increase object timeout
             }
         )
         
@@ -553,7 +614,7 @@ def main():
             print("\nNo GPU detected. Running experiments on CPU only.")
             # Redefine the run_single_experiment without GPU requirement
             global run_single_experiment
-            @ray.remote(num_cpus=1)  # Allocate 1 CPU per experiment
+            @ray.remote(num_cpus=1, max_retries=3)  # Allocate 1 CPU per experiment, allow retries
             def run_single_experiment(params):
                 try:
                     # Create experiment folder
@@ -588,6 +649,62 @@ def main():
                     # Run the experiment
                     LSM_main.run_experiment(hyperparams)
                     
+                    # After experiment completes, generate plots for each trial
+                    trial_dirs = [d for d in os.listdir(output_folder) if d.startswith('trial_') and os.path.isdir(os.path.join(output_folder, d))]
+                    
+                    for trial_dir in trial_dirs:
+                        trial_path = os.path.join(output_folder, trial_dir)
+                        trial_subdirs = [d for d in os.listdir(trial_path) if d.startswith('trial_') and os.path.isdir(os.path.join(trial_path, d))]
+                        
+                        for subdir in trial_subdirs:
+                            subdir_path = os.path.join(trial_path, subdir)
+                            
+                            # Check if FR_time.npy exists
+                            fr_time_path = os.path.join(subdir_path, 'FR_time.npy')
+                            if os.path.exists(fr_time_path):
+                                # Generate beta and threshold values
+                                beta_values = np.linspace(
+                                    hyperparams["beta_reservoir_range"][0],
+                                    hyperparams["beta_reservoir_range"][1],
+                                    hyperparams["grid_points"]
+                                )
+                                threshold_values = np.linspace(
+                                    hyperparams["threshold_range"][0],
+                                    hyperparams["threshold_range"][1],
+                                    hyperparams["grid_points"]
+                                )
+                                
+                                # Import plotting functions
+                                from LSM_plots import (
+                                    plot_all_static_2d_heatmaps,
+                                    plot_all_static_3d_surfaces,
+                                    create_animations_from_static_plots
+                                )
+                                
+                                # Generate all plots
+                                print(f"\nGenerating plots for {subdir_path}")
+                                plot_all_static_2d_heatmaps(
+                                    fr_time_path,
+                                    beta_values,
+                                    threshold_values,
+                                    params["spectral_radius"],
+                                    subdir_path
+                                )
+                                plot_all_static_3d_surfaces(
+                                    fr_time_path,
+                                    beta_values,
+                                    threshold_values,
+                                    params["spectral_radius"],
+                                    subdir_path
+                                )
+                                create_animations_from_static_plots(
+                                    fr_time_path,
+                                    beta_values,
+                                    threshold_values,
+                                    params["spectral_radius"],
+                                    subdir_path
+                                )
+                    
                     return {
                         "status": "completed",
                         "output_folder": output_folder,
@@ -610,7 +727,11 @@ def main():
             include_dashboard=False,
             log_to_driver=False,
             num_cpus=2,  # At least try to use 2 cores
-            object_store_memory=1 * 1024 * 1024 * 1024  # 1GB object store
+            object_store_memory=1 * 1024 * 1024 * 1024,  # 1GB object store
+            _system_config={
+                "max_worker_processes": 2,  # Limit worker processes
+                "task_retry_delay_ms": 1000  # Add delay between retries
+            }
         )
     
     # Discover matrices matching our parameters
