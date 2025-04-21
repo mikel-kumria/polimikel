@@ -6,6 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
+# .DS_Store is a macOS system file that stands for Desktop Services Store. 
+# It’s automatically created by Finder to store custom attributes of a folder, such as icon positions,
+# view options (list/grid view), window size and scroll position, background images for folders
+.DS_Store
+
 # Distribution / packaging
 .Python
 build/
