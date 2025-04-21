@@ -1,5 +1,0 @@
-avg_firing_rate,firing_rate_time,firing_rates_file,mem_potentials_file,timestamp,checkpoint_dir_name,done,training_iteration,trial_id,date,time_this_iter_s,time_total_s,pid,hostname,node_ip,time_since_restore,iterations_since_restore
-0.5868,"[0.52 0.51 0.51 0.56 0.55 0.6  0.54 0.55 0.48 0.56 0.62 0.55 0.56 0.48
- 0.51 0.41 0.53 0.44 0.38 0.38 0.54 0.44 0.66 0.52 0.46 0.63 0.69 0.71
- 0.57 0.64 0.63 0.63 0.66 0.6  0.73 0.65 0.65 0.68 0.61 0.68 0.62 0.69
- 0.63 0.71 0.64 0.72 0.61 0.74 0.69 0.67]",/Users/mikel/Documents/GitHub/polimikel/UCR/Simulations/sparse_80_20/reservoir_delta/results/trial_5_date_2025_04_11_00_49/trial_793adc/firing_rates_trial_793adc.npy,/Users/mikel/Documents/GitHub/polimikel/UCR/Simulations/sparse_80_20/reservoir_delta/results/trial_5_date_2025_04_11_00_49/trial_793adc/membrane_potentials_trial_793adc.npy,1744325683,,False,1,04f82_00741,2025-04-11_00-54-43,0.022851943969726562,0.022851943969726562,21483,MacBookPro.station,127.0.0.1,0.022851943969726562,1

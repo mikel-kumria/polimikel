@@ -1,0 +1,7 @@
+# This .gitignore will only act on this folder and its subfolders.
+# Has no upstream effects.
+
+__pycache__/
+*.pyc
+*.log
+results/trial_*/
