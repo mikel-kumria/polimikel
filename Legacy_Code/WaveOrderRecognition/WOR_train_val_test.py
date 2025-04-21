@@ -36,10 +36,6 @@ def train_model(model, train_loader, criterion, optimizer, epoch, num_epochs, ba
     output_total_spike_count = 0
     output_spike_counts_neuron0 = 0
     output_spike_counts_neuron1 = 0
-    equal_total = 0  # to accumulate equal predictions
-    correct_train = 0
-    total_train = 0
-
 
 
     def L1_regularization(model, L1_lambda):
@@ -65,9 +61,7 @@ def train_model(model, train_loader, criterion, optimizer, epoch, num_epochs, ba
         both_spike_penalty = ((spk2_rec[:, :, 0] == 1) & (spk2_rec[:, :, 1] == 1)).sum().item()
 
         # Add penalty to loss
-        #loss += penalty_weight * (equal_prediction + no_prediction + both_spike_penalty)
-        loss += penalty_weight * (equal_prediction + no_prediction)
-
+        loss += penalty_weight * (equal_prediction + no_prediction + both_spike_penalty)
 
         # L1 regularization
         loss += L1_regularization(model, L1_lambda)
@@ -86,28 +80,13 @@ def train_model(model, train_loader, criterion, optimizer, epoch, num_epochs, ba
         output_total_spike_count += output_spike_count
         output_spike_counts_neuron0 += spk2_rec[:, :, 0].sum().item()
         output_spike_counts_neuron1 += spk2_rec[:, :, 1].sum().item()
-        equal_total += equal_prediction  # accumulate equal predictions
-
-
-        predicted = []
-        for count in spike_counts:
-            if count[0] == count[1]:
-                predicted.append(random.choice([0, 1]))
-            else:
-                predicted.append(count.argmax().item())
-        predicted = torch.tensor(predicted, device=device)
-        total_train += labels.size(0)
-        correct_train += (predicted == labels).sum().item()
-
 
     avg_train_loss = running_loss / len(train_loader)
     avg_hidden_spike_count = hidden_total_spike_count / (len(train_loader) * batch_size * hidden_size)
     avg_output_spike_count = output_total_spike_count / (len(train_loader) * batch_size * output_size)
     avg_output_spike_counts_neuron0 = output_spike_counts_neuron0 / (len(train_loader) * batch_size)
     avg_output_spike_counts_neuron1 = output_spike_counts_neuron1 / (len(train_loader) * batch_size)
-    avg_equal_prediction = equal_total / len(train_loader)
-    avg_train_accuracy = 100 * correct_train / total_train  # training accuracy
-    return avg_train_loss, avg_hidden_spike_count, avg_output_spike_count, avg_output_spike_counts_neuron0, avg_output_spike_counts_neuron1, avg_equal_prediction, avg_train_accuracy
+    return avg_train_loss, avg_hidden_spike_count, avg_output_spike_count, avg_output_spike_counts_neuron0, avg_output_spike_counts_neuron1
 
 def validate_model(model, validation_loader, criterion, device):
     """

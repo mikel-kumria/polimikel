@@ -41,7 +41,7 @@ def plot_wave(data_loader, save_path, num_plots=6):
         plt.savefig(save_path, dpi=1200)
     plt.show()
 
-def plot_accuracies(num_epochs, train_accuracy, validation_accuracy, save_path):
+def plot_accuracies(num_epochs, test_accuracies, validation_accuracies, save_path):
     """
     Plots the accuracies over epochs.
 
@@ -54,11 +54,11 @@ def plot_accuracies(num_epochs, train_accuracy, validation_accuracy, save_path):
     sns.set_style('whitegrid')
     plt.figure(figsize=(14, 6))
     cmap = plt.get_cmap('bwr')(np.linspace(0.1, 0.9, 2))
-    plt.plot(range(num_epochs), train_accuracy, label='Test Accuracy', color=cmap[1])
-    plt.plot(range(num_epochs), validation_accuracy, label='Validation Accuracy', color=cmap[0])
+    plt.plot(range(num_epochs), test_accuracies, label='Test Accuracy', color=cmap[1])
+    plt.plot(range(num_epochs), validation_accuracies, label='Validation Accuracy', color=cmap[0])
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy (%)')
-    plt.title('Train and Validation Accuracy over Epochs')
+    plt.title('Validation and Test Accuracy over Epochs')
     plt.ylim(1, 100)
     plt.xlim(0, num_epochs)
     plt.legend(shadow=True)
@@ -71,22 +71,22 @@ def plot_accuracies(num_epochs, train_accuracy, validation_accuracy, save_path):
 
     fig_plotly.add_trace(go.Scatter(
         x=list(range(num_epochs)),
-        y=train_accuracy,
+        y=test_accuracies,
         mode='lines',
-        name='Train Accuracy',
+        name='Test Accuracy',
         line=dict(color='red')
     ))
 
     fig_plotly.add_trace(go.Scatter(
         x=list(range(num_epochs)),
-        y=validation_accuracy,
+        y=validation_accuracies,
         mode='lines',
         name='Validation Accuracy',
         line=dict(color='blue')
     ))
 
     fig_plotly.update_layout(
-        title='Train and Validation Accuracy over Epochs',
+        title='Validation and Test Accuracy over Epochs',
         xaxis_title='Epochs',
         xaxis=dict(range=[0, num_epochs]),
         yaxis_title='Accuracy (%)',
