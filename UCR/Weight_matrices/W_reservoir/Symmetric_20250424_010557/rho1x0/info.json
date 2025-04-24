@@ -1,0 +1,909 @@
+{
+    "spectral_radius": 1.0,
+    "matrix_files": [
+        {
+            "seed": 1,
+            "filename": "W_res_seed1.npy",
+            "original_spectral_radius": 14.075627185491383,
+            "scaling_factor": 0.07104479159768892,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 2,
+            "filename": "W_res_seed2.npy",
+            "original_spectral_radius": 14.076002325303646,
+            "scaling_factor": 0.07104289818156365,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 3,
+            "filename": "W_res_seed3.npy",
+            "original_spectral_radius": 13.957887326359,
+            "scaling_factor": 0.07164408026933515,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 4,
+            "filename": "W_res_seed4.npy",
+            "original_spectral_radius": 13.562485725894023,
+            "scaling_factor": 0.07373279649546552,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 5,
+            "filename": "W_res_seed5.npy",
+            "original_spectral_radius": 14.14840614946962,
+            "scaling_factor": 0.07067933938534036,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 6,
+            "filename": "W_res_seed6.npy",
+            "original_spectral_radius": 13.248960986342482,
+            "scaling_factor": 0.07547761677544654,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 7,
+            "filename": "W_res_seed7.npy",
+            "original_spectral_radius": 13.940947618371876,
+            "scaling_factor": 0.07173113531265009,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 8,
+            "filename": "W_res_seed8.npy",
+            "original_spectral_radius": 14.45674813134118,
+            "scaling_factor": 0.06917184908493167,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 9,
+            "filename": "W_res_seed9.npy",
+            "original_spectral_radius": 14.061937081331399,
+            "scaling_factor": 0.07111395778662657,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 10,
+            "filename": "W_res_seed10.npy",
+            "original_spectral_radius": 13.427065284976495,
+            "scaling_factor": 0.07447643835610877,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 11,
+            "filename": "W_res_seed11.npy",
+            "original_spectral_radius": 13.9270208400633,
+            "scaling_factor": 0.07180286519880406,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 12,
+            "filename": "W_res_seed12.npy",
+            "original_spectral_radius": 14.18834890274332,
+            "scaling_factor": 0.07048036433658957,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 13,
+            "filename": "W_res_seed13.npy",
+            "original_spectral_radius": 14.284028452171022,
+            "scaling_factor": 0.07000826155929496,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 14,
+            "filename": "W_res_seed14.npy",
+            "original_spectral_radius": 13.95427150650892,
+            "scaling_factor": 0.07166264462702718,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 15,
+            "filename": "W_res_seed15.npy",
+            "original_spectral_radius": 13.999863550219455,
+            "scaling_factor": 0.07142926760770639,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 16,
+            "filename": "W_res_seed16.npy",
+            "original_spectral_radius": 13.79027267801659,
+            "scaling_factor": 0.07251488229048034,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 17,
+            "filename": "W_res_seed17.npy",
+            "original_spectral_radius": 14.141517865741614,
+            "scaling_factor": 0.07071376704353212,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 18,
+            "filename": "W_res_seed18.npy",
+            "original_spectral_radius": 13.46360354247023,
+            "scaling_factor": 0.07427432015845925,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 19,
+            "filename": "W_res_seed19.npy",
+            "original_spectral_radius": 13.645854002317053,
+            "scaling_factor": 0.07328233174927717,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 20,
+            "filename": "W_res_seed20.npy",
+            "original_spectral_radius": 13.780303267603266,
+            "scaling_factor": 0.07256734344525965,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 21,
+            "filename": "W_res_seed21.npy",
+            "original_spectral_radius": 14.311147420997335,
+            "scaling_factor": 0.06987559911043881,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 22,
+            "filename": "W_res_seed22.npy",
+            "original_spectral_radius": 14.363265888763632,
+            "scaling_factor": 0.06962204889504267,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 23,
+            "filename": "W_res_seed23.npy",
+            "original_spectral_radius": 13.51149886286092,
+            "scaling_factor": 0.074011033871949,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 24,
+            "filename": "W_res_seed24.npy",
+            "original_spectral_radius": 13.841136734187305,
+            "scaling_factor": 0.07224840121187603,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 25,
+            "filename": "W_res_seed25.npy",
+            "original_spectral_radius": 13.930986081927836,
+            "scaling_factor": 0.07178242761273473,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 26,
+            "filename": "W_res_seed26.npy",
+            "original_spectral_radius": 13.37619542005184,
+            "scaling_factor": 0.0747596733299015,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 27,
+            "filename": "W_res_seed27.npy",
+            "original_spectral_radius": 13.810314243072213,
+            "scaling_factor": 0.0724096484988847,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 28,
+            "filename": "W_res_seed28.npy",
+            "original_spectral_radius": 13.560355219891381,
+            "scaling_factor": 0.0737443808649734,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 29,
+            "filename": "W_res_seed29.npy",
+            "original_spectral_radius": 14.241087269446142,
+            "scaling_factor": 0.07021935762906757,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 30,
+            "filename": "W_res_seed30.npy",
+            "original_spectral_radius": 13.586699001561804,
+            "scaling_factor": 0.07360139500293994,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 31,
+            "filename": "W_res_seed31.npy",
+            "original_spectral_radius": 13.993459552269975,
+            "scaling_factor": 0.07146195665658554,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 32,
+            "filename": "W_res_seed32.npy",
+            "original_spectral_radius": 14.22485461382736,
+            "scaling_factor": 0.07029948826527505,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 33,
+            "filename": "W_res_seed33.npy",
+            "original_spectral_radius": 13.720309329342962,
+            "scaling_factor": 0.07288465412812146,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 34,
+            "filename": "W_res_seed34.npy",
+            "original_spectral_radius": 13.736673401557884,
+            "scaling_factor": 0.07279782890423743,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 35,
+            "filename": "W_res_seed35.npy",
+            "original_spectral_radius": 14.05130282974181,
+            "scaling_factor": 0.07116777797168683,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 36,
+            "filename": "W_res_seed36.npy",
+            "original_spectral_radius": 13.704843324331883,
+            "scaling_factor": 0.0729669049353215,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 37,
+            "filename": "W_res_seed37.npy",
+            "original_spectral_radius": 14.159731723080869,
+            "scaling_factor": 0.07062280695403036,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 38,
+            "filename": "W_res_seed38.npy",
+            "original_spectral_radius": 13.301553951258894,
+            "scaling_factor": 0.07517918610594797,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 39,
+            "filename": "W_res_seed39.npy",
+            "original_spectral_radius": 13.751757227093313,
+            "scaling_factor": 0.07271797949063769,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 40,
+            "filename": "W_res_seed40.npy",
+            "original_spectral_radius": 14.10945142054651,
+            "scaling_factor": 0.07087447769541039,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 41,
+            "filename": "W_res_seed41.npy",
+            "original_spectral_radius": 13.962511617306273,
+            "scaling_factor": 0.07162035222663798,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 42,
+            "filename": "W_res_seed42.npy",
+            "original_spectral_radius": 14.910233935425664,
+            "scaling_factor": 0.06706802886734531,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 43,
+            "filename": "W_res_seed43.npy",
+            "original_spectral_radius": 13.44974684208628,
+            "scaling_factor": 0.07435084182185867,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 44,
+            "filename": "W_res_seed44.npy",
+            "original_spectral_radius": 13.409805119686817,
+            "scaling_factor": 0.0745722992299052,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 45,
+            "filename": "W_res_seed45.npy",
+            "original_spectral_radius": 13.042979490336428,
+            "scaling_factor": 0.07666959844113089,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 46,
+            "filename": "W_res_seed46.npy",
+            "original_spectral_radius": 13.571039423224525,
+            "scaling_factor": 0.0736863234137151,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 47,
+            "filename": "W_res_seed47.npy",
+            "original_spectral_radius": 14.102938375134698,
+            "scaling_factor": 0.0709072090794305,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 48,
+            "filename": "W_res_seed48.npy",
+            "original_spectral_radius": 13.68638584472759,
+            "scaling_factor": 0.07306530820810012,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 49,
+            "filename": "W_res_seed49.npy",
+            "original_spectral_radius": 14.435918559595985,
+            "scaling_factor": 0.06927165707340946,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 50,
+            "filename": "W_res_seed50.npy",
+            "original_spectral_radius": 14.452584670334492,
+            "scaling_factor": 0.0691917759217567,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 51,
+            "filename": "W_res_seed51.npy",
+            "original_spectral_radius": 14.05500298156195,
+            "scaling_factor": 0.07114904218176614,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 52,
+            "filename": "W_res_seed52.npy",
+            "original_spectral_radius": 13.735579524965159,
+            "scaling_factor": 0.0728036263910413,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 53,
+            "filename": "W_res_seed53.npy",
+            "original_spectral_radius": 13.354461260079287,
+            "scaling_factor": 0.07488134343459564,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 54,
+            "filename": "W_res_seed54.npy",
+            "original_spectral_radius": 13.94303911951861,
+            "scaling_factor": 0.07172037540941256,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 55,
+            "filename": "W_res_seed55.npy",
+            "original_spectral_radius": 14.445062045891586,
+            "scaling_factor": 0.06922780925571839,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 56,
+            "filename": "W_res_seed56.npy",
+            "original_spectral_radius": 13.681346672472978,
+            "scaling_factor": 0.07309221993563039,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 57,
+            "filename": "W_res_seed57.npy",
+            "original_spectral_radius": 14.450889994249298,
+            "scaling_factor": 0.06919989013811245,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 58,
+            "filename": "W_res_seed58.npy",
+            "original_spectral_radius": 14.086793750589925,
+            "scaling_factor": 0.07098847457450154,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 59,
+            "filename": "W_res_seed59.npy",
+            "original_spectral_radius": 13.77727447876513,
+            "scaling_factor": 0.07258329661220708,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 60,
+            "filename": "W_res_seed60.npy",
+            "original_spectral_radius": 14.134541819297054,
+            "scaling_factor": 0.07074866753974007,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 61,
+            "filename": "W_res_seed61.npy",
+            "original_spectral_radius": 13.814169623153893,
+            "scaling_factor": 0.0723894397766698,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 62,
+            "filename": "W_res_seed62.npy",
+            "original_spectral_radius": 14.311314023833564,
+            "scaling_factor": 0.06987478566500846,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 63,
+            "filename": "W_res_seed63.npy",
+            "original_spectral_radius": 13.749486640083182,
+            "scaling_factor": 0.07272998812077468,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 64,
+            "filename": "W_res_seed64.npy",
+            "original_spectral_radius": 13.86365949068663,
+            "scaling_factor": 0.07213102721339795,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 65,
+            "filename": "W_res_seed65.npy",
+            "original_spectral_radius": 13.895088699279473,
+            "scaling_factor": 0.07196787452330944,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 66,
+            "filename": "W_res_seed66.npy",
+            "original_spectral_radius": 13.528653558028319,
+            "scaling_factor": 0.07391718589811691,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 67,
+            "filename": "W_res_seed67.npy",
+            "original_spectral_radius": 14.278000667533654,
+            "scaling_factor": 0.07003781714857824,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 68,
+            "filename": "W_res_seed68.npy",
+            "original_spectral_radius": 13.564187893058795,
+            "scaling_factor": 0.07372354378191194,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 69,
+            "filename": "W_res_seed69.npy",
+            "original_spectral_radius": 14.086841883220265,
+            "scaling_factor": 0.07098823201750874,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 70,
+            "filename": "W_res_seed70.npy",
+            "original_spectral_radius": 14.283146252614408,
+            "scaling_factor": 0.07001258562461043,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 71,
+            "filename": "W_res_seed71.npy",
+            "original_spectral_radius": 13.831555209718944,
+            "scaling_factor": 0.0722984498010271,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 72,
+            "filename": "W_res_seed72.npy",
+            "original_spectral_radius": 14.024278687463791,
+            "scaling_factor": 0.07130491501811735,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 73,
+            "filename": "W_res_seed73.npy",
+            "original_spectral_radius": 14.200724781337742,
+            "scaling_factor": 0.07041894096237795,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 74,
+            "filename": "W_res_seed74.npy",
+            "original_spectral_radius": 14.157891857510865,
+            "scaling_factor": 0.07063198462485025,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 75,
+            "filename": "W_res_seed75.npy",
+            "original_spectral_radius": 13.73830243010564,
+            "scaling_factor": 0.07278919685219876,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 76,
+            "filename": "W_res_seed76.npy",
+            "original_spectral_radius": 13.728624157686784,
+            "scaling_factor": 0.07284051107481813,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 77,
+            "filename": "W_res_seed77.npy",
+            "original_spectral_radius": 14.450994280333804,
+            "scaling_factor": 0.06919939075478625,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 78,
+            "filename": "W_res_seed78.npy",
+            "original_spectral_radius": 13.95549587286833,
+            "scaling_factor": 0.07165635740283201,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 79,
+            "filename": "W_res_seed79.npy",
+            "original_spectral_radius": 13.411824874837357,
+            "scaling_factor": 0.07456106900681007,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 80,
+            "filename": "W_res_seed80.npy",
+            "original_spectral_radius": 14.352239438828537,
+            "scaling_factor": 0.06967553769306557,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 81,
+            "filename": "W_res_seed81.npy",
+            "original_spectral_radius": 14.202210662965737,
+            "scaling_factor": 0.07041157350296463,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 82,
+            "filename": "W_res_seed82.npy",
+            "original_spectral_radius": 13.268036264208106,
+            "scaling_factor": 0.07536910361766216,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 83,
+            "filename": "W_res_seed83.npy",
+            "original_spectral_radius": 14.419648175302253,
+            "scaling_factor": 0.06934981962408655,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 84,
+            "filename": "W_res_seed84.npy",
+            "original_spectral_radius": 14.025775977017227,
+            "scaling_factor": 0.07129730302541619,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 85,
+            "filename": "W_res_seed85.npy",
+            "original_spectral_radius": 13.654168706381434,
+            "scaling_factor": 0.07323770648392812,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 86,
+            "filename": "W_res_seed86.npy",
+            "original_spectral_radius": 13.963018051728465,
+            "scaling_factor": 0.07161775457822396,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 87,
+            "filename": "W_res_seed87.npy",
+            "original_spectral_radius": 14.072906562122439,
+            "scaling_factor": 0.07105852622453443,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 88,
+            "filename": "W_res_seed88.npy",
+            "original_spectral_radius": 15.313379063125579,
+            "scaling_factor": 0.06530237355698895,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 89,
+            "filename": "W_res_seed89.npy",
+            "original_spectral_radius": 14.103682013766775,
+            "scaling_factor": 0.07090347038623587,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 90,
+            "filename": "W_res_seed90.npy",
+            "original_spectral_radius": 13.660550684728912,
+            "scaling_factor": 0.07320349106554665,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 91,
+            "filename": "W_res_seed91.npy",
+            "original_spectral_radius": 13.54666411382976,
+            "scaling_factor": 0.07381891154879246,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 92,
+            "filename": "W_res_seed92.npy",
+            "original_spectral_radius": 13.572000512317224,
+            "scaling_factor": 0.07368110538254499,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 93,
+            "filename": "W_res_seed93.npy",
+            "original_spectral_radius": 13.460876606151254,
+            "scaling_factor": 0.07428936682645372,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 94,
+            "filename": "W_res_seed94.npy",
+            "original_spectral_radius": 13.92178090756072,
+            "scaling_factor": 0.07182989063252061,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 95,
+            "filename": "W_res_seed95.npy",
+            "original_spectral_radius": 13.463472222424436,
+            "scaling_factor": 0.0742750446154911,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 96,
+            "filename": "W_res_seed96.npy",
+            "original_spectral_radius": 14.430551499431429,
+            "scaling_factor": 0.06929742082548962,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 97,
+            "filename": "W_res_seed97.npy",
+            "original_spectral_radius": 14.22499730368151,
+            "scaling_factor": 0.07029878309651379,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 98,
+            "filename": "W_res_seed98.npy",
+            "original_spectral_radius": 14.863417482213668,
+            "scaling_factor": 0.06727927821422304,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 99,
+            "filename": "W_res_seed99.npy",
+            "original_spectral_radius": 14.137666587122833,
+            "scaling_factor": 0.07073303036519768,
+            "final_spectral_radius": 1.0
+        },
+        {
+            "seed": 100,
+            "filename": "W_res_seed100.npy",
+            "original_spectral_radius": 14.186975025397695,
+            "scaling_factor": 0.07048718970815046,
+            "final_spectral_radius": 1.0
+        }
+    ],
+    "eigenvalue_plots": [
+        "plots/eigenvalues_seed1.png",
+        "plots/eigenvalues_seed2.png",
+        "plots/eigenvalues_seed3.png",
+        "plots/eigenvalues_seed4.png",
+        "plots/eigenvalues_seed5.png",
+        "plots/eigenvalues_seed6.png",
+        "plots/eigenvalues_seed7.png",
+        "plots/eigenvalues_seed8.png",
+        "plots/eigenvalues_seed9.png",
+        "plots/eigenvalues_seed10.png",
+        "plots/eigenvalues_seed11.png",
+        "plots/eigenvalues_seed12.png",
+        "plots/eigenvalues_seed13.png",
+        "plots/eigenvalues_seed14.png",
+        "plots/eigenvalues_seed15.png",
+        "plots/eigenvalues_seed16.png",
+        "plots/eigenvalues_seed17.png",
+        "plots/eigenvalues_seed18.png",
+        "plots/eigenvalues_seed19.png",
+        "plots/eigenvalues_seed20.png",
+        "plots/eigenvalues_seed21.png",
+        "plots/eigenvalues_seed22.png",
+        "plots/eigenvalues_seed23.png",
+        "plots/eigenvalues_seed24.png",
+        "plots/eigenvalues_seed25.png",
+        "plots/eigenvalues_seed26.png",
+        "plots/eigenvalues_seed27.png",
+        "plots/eigenvalues_seed28.png",
+        "plots/eigenvalues_seed29.png",
+        "plots/eigenvalues_seed30.png",
+        "plots/eigenvalues_seed31.png",
+        "plots/eigenvalues_seed32.png",
+        "plots/eigenvalues_seed33.png",
+        "plots/eigenvalues_seed34.png",
+        "plots/eigenvalues_seed35.png",
+        "plots/eigenvalues_seed36.png",
+        "plots/eigenvalues_seed37.png",
+        "plots/eigenvalues_seed38.png",
+        "plots/eigenvalues_seed39.png",
+        "plots/eigenvalues_seed40.png",
+        "plots/eigenvalues_seed41.png",
+        "plots/eigenvalues_seed42.png",
+        "plots/eigenvalues_seed43.png",
+        "plots/eigenvalues_seed44.png",
+        "plots/eigenvalues_seed45.png",
+        "plots/eigenvalues_seed46.png",
+        "plots/eigenvalues_seed47.png",
+        "plots/eigenvalues_seed48.png",
+        "plots/eigenvalues_seed49.png",
+        "plots/eigenvalues_seed50.png",
+        "plots/eigenvalues_seed51.png",
+        "plots/eigenvalues_seed52.png",
+        "plots/eigenvalues_seed53.png",
+        "plots/eigenvalues_seed54.png",
+        "plots/eigenvalues_seed55.png",
+        "plots/eigenvalues_seed56.png",
+        "plots/eigenvalues_seed57.png",
+        "plots/eigenvalues_seed58.png",
+        "plots/eigenvalues_seed59.png",
+        "plots/eigenvalues_seed60.png",
+        "plots/eigenvalues_seed61.png",
+        "plots/eigenvalues_seed62.png",
+        "plots/eigenvalues_seed63.png",
+        "plots/eigenvalues_seed64.png",
+        "plots/eigenvalues_seed65.png",
+        "plots/eigenvalues_seed66.png",
+        "plots/eigenvalues_seed67.png",
+        "plots/eigenvalues_seed68.png",
+        "plots/eigenvalues_seed69.png",
+        "plots/eigenvalues_seed70.png",
+        "plots/eigenvalues_seed71.png",
+        "plots/eigenvalues_seed72.png",
+        "plots/eigenvalues_seed73.png",
+        "plots/eigenvalues_seed74.png",
+        "plots/eigenvalues_seed75.png",
+        "plots/eigenvalues_seed76.png",
+        "plots/eigenvalues_seed77.png",
+        "plots/eigenvalues_seed78.png",
+        "plots/eigenvalues_seed79.png",
+        "plots/eigenvalues_seed80.png",
+        "plots/eigenvalues_seed81.png",
+        "plots/eigenvalues_seed82.png",
+        "plots/eigenvalues_seed83.png",
+        "plots/eigenvalues_seed84.png",
+        "plots/eigenvalues_seed85.png",
+        "plots/eigenvalues_seed86.png",
+        "plots/eigenvalues_seed87.png",
+        "plots/eigenvalues_seed88.png",
+        "plots/eigenvalues_seed89.png",
+        "plots/eigenvalues_seed90.png",
+        "plots/eigenvalues_seed91.png",
+        "plots/eigenvalues_seed92.png",
+        "plots/eigenvalues_seed93.png",
+        "plots/eigenvalues_seed94.png",
+        "plots/eigenvalues_seed95.png",
+        "plots/eigenvalues_seed96.png",
+        "plots/eigenvalues_seed97.png",
+        "plots/eigenvalues_seed98.png",
+        "plots/eigenvalues_seed99.png",
+        "plots/eigenvalues_seed100.png"
+    ],
+    "histogram_plots": [
+        "plots/histogram_seed1.png",
+        "plots/histogram_seed2.png",
+        "plots/histogram_seed3.png",
+        "plots/histogram_seed4.png",
+        "plots/histogram_seed5.png",
+        "plots/histogram_seed6.png",
+        "plots/histogram_seed7.png",
+        "plots/histogram_seed8.png",
+        "plots/histogram_seed9.png",
+        "plots/histogram_seed10.png",
+        "plots/histogram_seed11.png",
+        "plots/histogram_seed12.png",
+        "plots/histogram_seed13.png",
+        "plots/histogram_seed14.png",
+        "plots/histogram_seed15.png",
+        "plots/histogram_seed16.png",
+        "plots/histogram_seed17.png",
+        "plots/histogram_seed18.png",
+        "plots/histogram_seed19.png",
+        "plots/histogram_seed20.png",
+        "plots/histogram_seed21.png",
+        "plots/histogram_seed22.png",
+        "plots/histogram_seed23.png",
+        "plots/histogram_seed24.png",
+        "plots/histogram_seed25.png",
+        "plots/histogram_seed26.png",
+        "plots/histogram_seed27.png",
+        "plots/histogram_seed28.png",
+        "plots/histogram_seed29.png",
+        "plots/histogram_seed30.png",
+        "plots/histogram_seed31.png",
+        "plots/histogram_seed32.png",
+        "plots/histogram_seed33.png",
+        "plots/histogram_seed34.png",
+        "plots/histogram_seed35.png",
+        "plots/histogram_seed36.png",
+        "plots/histogram_seed37.png",
+        "plots/histogram_seed38.png",
+        "plots/histogram_seed39.png",
+        "plots/histogram_seed40.png",
+        "plots/histogram_seed41.png",
+        "plots/histogram_seed42.png",
+        "plots/histogram_seed43.png",
+        "plots/histogram_seed44.png",
+        "plots/histogram_seed45.png",
+        "plots/histogram_seed46.png",
+        "plots/histogram_seed47.png",
+        "plots/histogram_seed48.png",
+        "plots/histogram_seed49.png",
+        "plots/histogram_seed50.png",
+        "plots/histogram_seed51.png",
+        "plots/histogram_seed52.png",
+        "plots/histogram_seed53.png",
+        "plots/histogram_seed54.png",
+        "plots/histogram_seed55.png",
+        "plots/histogram_seed56.png",
+        "plots/histogram_seed57.png",
+        "plots/histogram_seed58.png",
+        "plots/histogram_seed59.png",
+        "plots/histogram_seed60.png",
+        "plots/histogram_seed61.png",
+        "plots/histogram_seed62.png",
+        "plots/histogram_seed63.png",
+        "plots/histogram_seed64.png",
+        "plots/histogram_seed65.png",
+        "plots/histogram_seed66.png",
+        "plots/histogram_seed67.png",
+        "plots/histogram_seed68.png",
+        "plots/histogram_seed69.png",
+        "plots/histogram_seed70.png",
+        "plots/histogram_seed71.png",
+        "plots/histogram_seed72.png",
+        "plots/histogram_seed73.png",
+        "plots/histogram_seed74.png",
+        "plots/histogram_seed75.png",
+        "plots/histogram_seed76.png",
+        "plots/histogram_seed77.png",
+        "plots/histogram_seed78.png",
+        "plots/histogram_seed79.png",
+        "plots/histogram_seed80.png",
+        "plots/histogram_seed81.png",
+        "plots/histogram_seed82.png",
+        "plots/histogram_seed83.png",
+        "plots/histogram_seed84.png",
+        "plots/histogram_seed85.png",
+        "plots/histogram_seed86.png",
+        "plots/histogram_seed87.png",
+        "plots/histogram_seed88.png",
+        "plots/histogram_seed89.png",
+        "plots/histogram_seed90.png",
+        "plots/histogram_seed91.png",
+        "plots/histogram_seed92.png",
+        "plots/histogram_seed93.png",
+        "plots/histogram_seed94.png",
+        "plots/histogram_seed95.png",
+        "plots/histogram_seed96.png",
+        "plots/histogram_seed97.png",
+        "plots/histogram_seed98.png",
+        "plots/histogram_seed99.png",
+        "plots/histogram_seed100.png"
+    ]
+}
