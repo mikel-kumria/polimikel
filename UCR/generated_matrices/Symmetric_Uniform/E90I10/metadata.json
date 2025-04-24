@@ -1,0 +1,19 @@
+{
+    "matrix_type": "Symmetric",
+    "dimension": 100,
+    "timestamp": "20250424_164030",
+    "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+    ],
+    "spectral_radius": 1.0,
+    "ei_ratio": 0.9
+}
