@@ -48,7 +48,7 @@ def save_hyperparameters_log(hyperparams, output_folder):
         
         f.write("PARAMETER RANGES\n")
         f.write("-" * 80 + "\n")
-        f.write(f"Threshold Range: [{hyperparams['threshold_range'][0]}, {hyperparams['threshold_range'][1]}]\n")
+        f.write(f"Spectral Radius Range: [{hyperparams['spectral_radius_range'][0]}, {hyperparams['spectral_radius_range'][1]}]\n")
         f.write(f"Beta Reservoir Range: [{hyperparams['beta_reservoir_range'][0]}, {hyperparams['beta_reservoir_range'][1]}]\n")
         f.write("\n")
         
@@ -66,7 +66,22 @@ def save_hyperparameters_log(hyperparams, output_folder):
         f.write("End of Hyperparameters Summary\n")
         f.write("=" * 80 + "\n")
 
-# ------------------------
+def scale_matrix_to_radius(W, desired_radius):
+    """
+    Rescale the matrix W to have the desired spectral radius.
+    
+    Parameters:
+        W (np.ndarray): The weight matrix.
+        desired_radius (float): Target spectral radius.
+        
+    Returns:
+        W_rescaled (np.ndarray): The rescaled matrix.
+    """
+    eigenvalues = np.linalg.eigvals(W)
+    current_radius = np.max(np.abs(eigenvalues))
+    scaling_factor = desired_radius / current_radius if current_radius != 0 else 1.0
+    return W * scaling_factor
+
 def run_trial(config):
     defs.set_seed(42)
     trial_id = uuid.uuid4().hex[:6] # Unique trial ID for logging.
@@ -79,21 +94,29 @@ def run_trial(config):
     writer = SummaryWriter(log_dir=os.path.join(trial_folder, "tensorboard"))
     writer.add_text("Hyperparameters", json.dumps(config, indent=2))
 
+    # Load and rescale the weight matrix to desired spectral radius
+    W_initial = np.load(config["connectivity_matrix_path"])
+    W_rescaled = scale_matrix_to_radius(W_initial, config["spectral_radius"])
+    
+    # Save the rescaled matrix temporarily
+    temp_matrix_path = os.path.join(trial_folder, "temp_rescaled_matrix.npy")
+    np.save(temp_matrix_path, W_rescaled)
+
     model = SpikingReservoirLoaded(
-        threshold=config["threshold"],
+        threshold=1.0,  # Fixed threshold
         beta_reservoir=config["beta_reservoir"],
         reservoir_size=config["reservoir_size"],
         device=config["device"],
         reset_delay=config["reset_delay"],
         input_lif_beta=config["input_lif_beta"],
         reset_mechanism=config["reset_mechanism"],
-        connectivity_matrix_path=config["connectivity_matrix_path"],
+        connectivity_matrix_path=temp_matrix_path,
         input_weights_path=config.get("input_weights_path", None)
     )
     model.eval()
 
     # Generate 50-time-step input signal.
-    x = generate_input_signal(V_threshold=config["threshold"], time_steps=50)
+    x = generate_input_signal(V_threshold=1.0, time_steps=50)  # Fixed threshold
 
     # Run the simulation.
     avg_firing_rate, spike_record, mem_record = model(x)
@@ -117,6 +140,9 @@ def run_trial(config):
     # Aggregate a per-time-step average firing rate (averaged across neurons).
     avg_rate_time = np.mean(spike_record, axis=2).squeeze(1)  # shape: (time_steps,)
 
+    # Clean up temporary matrix file
+    os.remove(temp_matrix_path)
+
     # Report the trial result (and extra fields) via session.report.
     session.report({
         "avg_firing_rate": avg_firing_rate,
@@ -139,18 +165,18 @@ def run_experiment(hyperparams):
     # Save detailed hyperparameters log
     save_hyperparameters_log(hyperparams, output_folder)
 
-    # Define grid search arrays for threshold and beta_reservoir
-    n_points = hyperparams.get("grid_points", 5)
-    threshold_vals = np.linspace(hyperparams["threshold_range"][0], 
-                               hyperparams["threshold_range"][1], 
-                               n_points).tolist()
+    # Define grid search arrays for spectral_radius and beta_reservoir
+    n_points = hyperparams.get("grid_points", 50)
+    spectral_radius_vals = np.linspace(hyperparams["spectral_radius_range"][0], 
+                                     hyperparams["spectral_radius_range"][1], 
+                                     n_points).tolist()
     beta_vals = np.linspace(hyperparams["beta_reservoir_range"][0], 
                            hyperparams["beta_reservoir_range"][1], 
                            n_points).tolist()
 
     # Create a configuration for ray tune that uses grid search
     config = {
-        "threshold": tune.grid_search(threshold_vals),
+        "spectral_radius": tune.grid_search(spectral_radius_vals),
         "beta_reservoir": tune.grid_search(beta_vals),
         "reservoir_size": hyperparams["reservoir_size"],
         "device": hyperparams["device"],
@@ -178,11 +204,11 @@ def run_experiment(hyperparams):
     # Aggregate the trial results into a single FR_time array
     trials = analysis.trials
     time_steps = 50  # This should match the number of time steps you used
-    FR_time = np.zeros((time_steps, len(threshold_vals), len(beta_vals)))
+    FR_time = np.zeros((time_steps, len(spectral_radius_vals), len(beta_vals)))
     for trial in trials:
-        t_val = trial.config["threshold"]
+        rho_val = trial.config["spectral_radius"]
         b_val = trial.config["beta_reservoir"]
-        i = threshold_vals.index(t_val)
+        i = spectral_radius_vals.index(rho_val)
         j = beta_vals.index(b_val)
         FR_time[:, i, j] = trial.last_result["firing_rate_time"]
 
@@ -191,19 +217,13 @@ def run_experiment(hyperparams):
     np.save(fr_time_file, FR_time)
 
     # ------------------------
-    # Compute the spectral radius from the connectivity matrix (for the plots)
-    W = np.load(hyperparams["connectivity_matrix_path"])
-    spectral_radius = np.max(np.abs(np.linalg.eigvals(W)))
-
-    # ------------------------
-    import LSM_plots as plots
-
     # Generate all plots
-    plots.plot_all_static_3d_surfaces(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
-    plots.plot_all_static_2d_heatmaps(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
-    plots.plot_interactive_animated_3d_from_file(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
-    plots.plot_interactive_animated_2d_from_file(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
-    plots.plot_convergence_time_heatmap(fr_time_file, beta_vals, threshold_vals, spectral_radius, output_folder)
+    import LSM_plots as plots
+    plots.plot_all_static_3d_surfaces(fr_time_file, beta_vals, spectral_radius_vals, output_folder)
+    plots.plot_all_static_2d_heatmaps(fr_time_file, beta_vals, spectral_radius_vals, output_folder)
+    plots.plot_interactive_animated_3d_from_file(fr_time_file, beta_vals, spectral_radius_vals, output_folder)
+    plots.plot_interactive_animated_2d_from_file(fr_time_file, beta_vals, spectral_radius_vals, output_folder)
+    plots.plot_convergence_time_heatmap(fr_time_file, beta_vals, spectral_radius_vals, output_folder)
 
     print(f"Experiment completed. All results saved in: {output_folder}")
     return output_folder
@@ -211,17 +231,18 @@ def run_experiment(hyperparams):
 if __name__ == '__main__':
     # Default hyperparameters when running as main script
     hyperparams = {
-        "device": "cuda" if torch.cuda.is_available() else "cpu",
-        "output_base_dir": "/Users/mikel/Documents/GitHub/polimikel/UCR/Simulations/sparse_80_20/reservoir_delta/results",
-        "connectivity_matrix_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/Random_80_20/rho1x0/80_20_weights_sparsity_0.1_rho1/weight_matrix_seed_1.npy",
-        "input_weights_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/nnLinear_weights.npy",
+        #"device": "cuda" if torch.cuda.is_available() else "cpu",
+        "device": "cpu",
+        "output_base_dir": "/Users/mikel/Documents/GitHub/polimikel/UCR/Simulations/LSM_impulse/results",
+        "connectivity_matrix_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/W_reservoir/Symmetric_20250424_010557/rho1x0/W_res_seed1.npy",
+        "input_weights_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/nnLinear_Vectors/nnLinear_weights_seed1.npy",
         "reservoir_size": 100,
         "reset_delay": 0,
         "input_lif_beta": 0.01,
         "reset_mechanism": "zero",  # zero, none or subtract
-        "threshold_range": [0.0, 2.0],
-        "beta_reservoir_range": [0.0, 1.0],
-        "grid_points": 5  # Number of points in the grid search
+        "spectral_radius_range": [0.9, 1.1],  # Range for spectral radius grid search
+        "beta_reservoir_range": [0.8, 1.0],  # Range for beta reservoir grid search
+        "grid_points": 50  # Number of points in the grid search
     }
 
     run_experiment(hyperparams)

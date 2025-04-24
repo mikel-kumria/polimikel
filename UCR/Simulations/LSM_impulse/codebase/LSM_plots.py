@@ -13,7 +13,7 @@ def load_fr_time(fr_time_file):
     """
     return np.load(fr_time_file)
 
-def plot_all_static_3d_surfaces(fr_time_file, beta_values, threshold_values, spectral_radius, output_folder):
+def plot_all_static_3d_surfaces(fr_time_file, beta_values, spectral_radius_values, output_folder):
     """
     Loads FR_time from file and loops over all time steps to create and save static 3D surface plots.
     Each image is saved in the "static3Dplots" subfolder. Also creates an animation video.
@@ -24,7 +24,7 @@ def plot_all_static_3d_surfaces(fr_time_file, beta_values, threshold_values, spe
     
     FR_time = load_fr_time(fr_time_file)
     T = FR_time.shape[0]
-    X, Y = np.meshgrid(beta_values, threshold_values)
+    X, Y = np.meshgrid(beta_values, spectral_radius_values)
     
     for t in range(T):
         FR = FR_time[t]
@@ -33,9 +33,9 @@ def plot_all_static_3d_surfaces(fr_time_file, beta_values, threshold_values, spe
         ax.view_init(elev=30, azim=120)
         surf = ax.plot_surface(X, Y, FR, cmap='viridis', edgecolor='none')
         ax.set_xlabel('Beta Reservoir')
-        ax.set_ylabel('V_threshold')
+        ax.set_ylabel('Spectral Radius')
         ax.set_zlabel('Avg Firing Rate')
-        ax.set_title(f"3D Surface at Time Step {t} ($\\rho$: {spectral_radius:.2f})")
+        ax.set_title(f"3D Surface at Time Step {t}")
         fig.colorbar(surf, shrink=0.5, aspect=5)
         plt.tight_layout()
         save_path = os.path.join(static3D_dir, f"3d_surface_t{t}.png")
@@ -43,9 +43,9 @@ def plot_all_static_3d_surfaces(fr_time_file, beta_values, threshold_values, spe
         plt.close()
     
     # Create animations after generating static plots
-    create_animations_from_static_plots(fr_time_file, beta_values, threshold_values, spectral_radius, output_folder)
+    create_animations_from_static_plots(fr_time_file, beta_values, spectral_radius_values, output_folder)
 
-def plot_all_static_2d_heatmaps(fr_time_file, beta_values, threshold_values, spectral_radius, output_folder):
+def plot_all_static_2d_heatmaps(fr_time_file, beta_values, spectral_radius_values, output_folder):
     """
     Loads FR_time from file and loops over all time steps to create and save static 2D heatmaps.
     Each image is saved in the "static2Dplots" subfolder. Also creates an animation video.
@@ -60,21 +60,21 @@ def plot_all_static_2d_heatmaps(fr_time_file, beta_values, threshold_values, spe
         FR = FR_time[t]
         plt.figure(figsize=(8, 6))
         plt.imshow(FR, origin='lower', aspect='auto',
-                   extent=[min(beta_values), max(beta_values), min(threshold_values), max(threshold_values)],
+                   extent=[min(beta_values), max(beta_values), min(spectral_radius_values), max(spectral_radius_values)],
                    cmap='viridis')
         plt.colorbar(label='Avg Firing Rate')
         plt.xlabel('Beta Reservoir')
-        plt.ylabel('V_threshold')
-        plt.title(f"2D Heatmap at Time Step {t} ($\\rho$: {spectral_radius:.2f})")
+        plt.ylabel('Spectral Radius')
+        plt.title(f"2D Heatmap at Time Step {t}")
         plt.tight_layout()
         save_path = os.path.join(static2D_dir, f"2d_heatmap_t{t}.png")
         plt.savefig(save_path, dpi=600)
         plt.close()
     
     # Create animations after generating static plots
-    create_animations_from_static_plots(fr_time_file, beta_values, threshold_values, spectral_radius, output_folder)
+    create_animations_from_static_plots(fr_time_file, beta_values, spectral_radius_values, output_folder)
 
-def plot_interactive_animated_3d_from_file(fr_time_file, beta_values, threshold_values, spectral_radius, output_folder):
+def plot_interactive_animated_3d_from_file(fr_time_file, beta_values, spectral_radius_values, output_folder):
     """
     Loads FR_time from file and creates an interactive animated 3D surface plot over time,
     with a slider for manual frame control. Exports the animation as an HTML file.
@@ -86,7 +86,7 @@ def plot_interactive_animated_3d_from_file(fr_time_file, beta_values, threshold_
     frames = [go.Frame(data=[go.Surface(
                     z=FR_time[t], 
                     x=beta_values, 
-                    y=threshold_values, 
+                    y=spectral_radius_values, 
                     colorscale='Viridis'
                 )], name=str(t))
               for t in range(T)]
@@ -114,17 +114,17 @@ def plot_interactive_animated_3d_from_file(fr_time_file, beta_values, threshold_
     init_surface = go.Surface(
         z=FR_time[0], 
         x=beta_values, 
-        y=threshold_values, 
+        y=spectral_radius_values, 
         colorscale='Viridis'
     )
     
     # Create the figure and add frames and slider.
     fig = go.Figure(data=[init_surface], frames=frames)
     fig.update_layout(
-        title=f"Animated 3D Surface of Avg Firing Rate (ρ: {spectral_radius:.2f})",
+        title="Animated 3D Surface of Avg Firing Rate",
         scene=dict(
             xaxis_title="Beta Reservoir",
-            yaxis_title="V_threshold",
+            yaxis_title="Spectral Radius",
             zaxis_title="Avg Firing Rate"
         ),
         sliders=sliders,
@@ -156,7 +156,7 @@ def plot_interactive_animated_3d_from_file(fr_time_file, beta_values, threshold_
     save_path = os.path.join(output_folder, "interactive_3d_animated.html")
     fig.write_html(save_path)
 
-def plot_interactive_animated_2d_from_file(fr_time_file, beta_values, threshold_values, spectral_radius, output_folder):
+def plot_interactive_animated_2d_from_file(fr_time_file, beta_values, spectral_radius_values, output_folder):
     """
     Loads FR_time from file and creates an interactive animated 2D heatmap over time.
     Adds a slider to manually control the frame being displayed.
@@ -173,7 +173,7 @@ def plot_interactive_animated_2d_from_file(fr_time_file, beta_values, threshold_
         frame = go.Frame(
             data=[go.Heatmap(z=FR_time[t],
                              x=beta_values,
-                             y=threshold_values,
+                             y=spectral_radius_values,
                              colorscale='Viridis')],
             name=str(t)
         )
@@ -195,16 +195,16 @@ def plot_interactive_animated_2d_from_file(fr_time_file, beta_values, threshold_
     init_heat = go.Heatmap(
         z=FR_time[0],
         x=beta_values,
-        y=threshold_values,
+        y=spectral_radius_values,
         colorscale='Viridis'
     )
 
     # Build the figure.
     fig = go.Figure(data=[init_heat], frames=frames)
     fig.update_layout(
-        title=f"Animated 2D Heatmap of Avg Firing Rate (ρ: {spectral_radius:.2f})",
+        title="Animated 2D Heatmap of Avg Firing Rate",
         xaxis_title="Beta Reservoir",
-        yaxis_title="V_threshold",
+        yaxis_title="Spectral Radius",
         sliders=[{
             "active": 0,
             "currentvalue": {"prefix": "Frame: "},
@@ -239,18 +239,18 @@ def plot_interactive_animated_2d_from_file(fr_time_file, beta_values, threshold_
     save_path = os.path.join(output_folder, "interactive_2d_animated.html")
     fig.write_html(save_path)
 
-def plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, threshold_values, spectral_radius, output_folder):
+def plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, spectral_radius_values, output_folder):
     """
     Creates an interactive heatmap showing convergence times with hover information.
     """
     FR_time = load_fr_time(fr_time_file)
-    T, n_thresh, n_beta = FR_time.shape
+    T, n_rho, n_beta = FR_time.shape
     
     # Initialize convergence time matrix
-    convergence_times = np.full((n_thresh, n_beta), T)  # Default to max time steps
+    convergence_times = np.full((n_rho, n_beta), T)  # Default to max time steps
     
     # For each configuration, find when firing rate goes below 1%
-    for i in range(n_thresh):
+    for i in range(n_rho):
         for j in range(n_beta):
             firing_rates = FR_time[:, i, j]
             # Find first time step where firing rate < 1%
@@ -260,34 +260,29 @@ def plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, thresho
     
     # Create hover text matrix
     hover_text = []
-    for i in range(n_thresh):
+    for i in range(n_rho):
         hover_row = []
         for j in range(n_beta):
             if convergence_times[i, j] >= T:
                 hover_row.append(
                     f"β: {beta_values[j]:.3f}<br>" +
-                    f"V_threshold: {threshold_values[i]:.3f}<br>" +
+                    f"ρ: {spectral_radius_values[i]:.3f}<br>" +
                     f"Status: No convergence in {T} steps"
                 )
             else:
                 hover_row.append(
                     f"β: {beta_values[j]:.3f}<br>" +
-                    f"V_threshold: {threshold_values[i]:.3f}<br>" +
+                    f"ρ: {spectral_radius_values[i]:.3f}<br>" +
                     f"Convergence time: {int(convergence_times[i, j])} steps"
                 )
         hover_text.append(hover_row)
     
-    # Create the heatmap using plotly
+    # Create the heatmap using plotly with Viridis color palette
     fig = go.Figure(data=go.Heatmap(
         z=convergence_times,
         x=beta_values,
-        y=threshold_values,
-        colorscale=[
-            [0, 'yellow'],      # Fast convergence
-            [0.5, 'green'],     # Medium convergence
-            [0.99, 'blue'],     # Slow convergence
-            [1, 'black']        # No convergence
-        ],
+        y=spectral_radius_values,
+        colorscale='Viridis',
         text=hover_text,
         hoverinfo='text',
         colorbar=dict(
@@ -300,9 +295,9 @@ def plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, thresho
     
     # Update layout
     fig.update_layout(
-        title=f"Interactive Convergence Time Heatmap (ρ: {spectral_radius:.2f})",
+        title="Interactive Convergence Time Heatmap",
         xaxis_title="Beta Reservoir",
-        yaxis_title="V_threshold",
+        yaxis_title="Spectral Radius",
         width=800,
         height=600
     )
@@ -311,21 +306,21 @@ def plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, thresho
     save_path = os.path.join(output_folder, "convergence_time_heatmap_interactive.html")
     fig.write_html(save_path)
 
-def plot_convergence_time_heatmap(fr_time_file, beta_values, threshold_values, spectral_radius, output_folder):
+def plot_convergence_time_heatmap(fr_time_file, beta_values, spectral_radius_values, output_folder):
     """
     Creates both static and interactive heatmaps showing how many time steps it takes 
-    for each configuration (V_threshold, beta_reservoir) to reach an average firing 
+    for each configuration (spectral_radius, beta_reservoir) to reach an average firing 
     rate below 1%. If a configuration never reaches this state, it's marked with 
     a special value.
     """
     FR_time = load_fr_time(fr_time_file)
-    T, n_thresh, n_beta = FR_time.shape
+    T, n_rho, n_beta = FR_time.shape
     
     # Initialize convergence time matrix
-    convergence_times = np.full((n_thresh, n_beta), T)  # Default to max time steps
+    convergence_times = np.full((n_rho, n_beta), T)  # Default to max time steps
     
     # For each configuration, find when firing rate goes below 1%
-    for i in range(n_thresh):
+    for i in range(n_rho):
         for j in range(n_beta):
             firing_rates = FR_time[:, i, j]
             # Find first time step where firing rate < 1%
@@ -346,12 +341,12 @@ def plot_convergence_time_heatmap(fr_time_file, beta_values, threshold_values, s
     
     # Plot converging cases with viridis colormap
     im1 = plt.imshow(masked_convergence, origin='lower', aspect='auto',
-                    extent=[min(beta_values), max(beta_values), min(threshold_values), max(threshold_values)],
+                    extent=[min(beta_values), max(beta_values), min(spectral_radius_values), max(spectral_radius_values)],
                     cmap='viridis')
     
     # Plot non-converging cases in black
     plt.imshow(masked_non_converging, origin='lower', aspect='auto',
-               extent=[min(beta_values), max(beta_values), min(threshold_values), max(threshold_values)],
+               extent=[min(beta_values), max(beta_values), min(spectral_radius_values), max(spectral_radius_values)],
                cmap=plt.cm.colors.ListedColormap(['black']))
     
     # Add colorbar for convergence times
@@ -362,8 +357,8 @@ def plot_convergence_time_heatmap(fr_time_file, beta_values, threshold_values, s
                 horizontalalignment='right', fontsize=9)
     
     plt.xlabel('Beta Reservoir')
-    plt.ylabel('V_threshold')
-    plt.title(f"Convergence Time Heatmap (ρ: {spectral_radius:.2f})")
+    plt.ylabel('Spectral Radius')
+    plt.title("Convergence Time Heatmap")
     
     # Adjust layout to prevent overlapping
     plt.tight_layout()
@@ -374,9 +369,9 @@ def plot_convergence_time_heatmap(fr_time_file, beta_values, threshold_values, s
     plt.close(fig)
     
     # Create and save the interactive version
-    plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, threshold_values, spectral_radius, output_folder)
+    plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, spectral_radius_values, output_folder)
 
-def create_animations_from_static_plots(fr_time_file, beta_values, threshold_values, spectral_radius, output_folder):
+def create_animations_from_static_plots(fr_time_file, beta_values, spectral_radius_values, output_folder):
     """
     Creates video animations by combining the existing static plot images.
     Uses the previously generated PNG files in static2Dplots and static3Dplots folders.
@@ -451,13 +446,13 @@ def create_animations_from_static_plots(fr_time_file, beta_values, threshold_val
             ax_2d.clear()
             FR = FR_time[t]
             im = ax_2d.imshow(FR, origin='lower', aspect='auto',
-                             extent=[min(beta_values), max(beta_values), min(threshold_values), max(threshold_values)],
+                             extent=[min(beta_values), max(beta_values), min(spectral_radius_values), max(spectral_radius_values)],
                              cmap='viridis')
             if t == 0:  # Only add colorbar on first frame
                 plt.colorbar(im, label='Avg Firing Rate')
             ax_2d.set_xlabel('Beta Reservoir')
-            ax_2d.set_ylabel('V_threshold')
-            ax_2d.set_title(f"2D Heatmap at Time Step {t} (ρ: {spectral_radius:.2f})")
+            ax_2d.set_ylabel('Spectral Radius')
+            ax_2d.set_title(f"2D Heatmap at Time Step {t}")
             return [im]
         
         anim_2d = animation.FuncAnimation(fig_2d, animate_2d, frames=T, interval=250, blit=True)
@@ -467,7 +462,7 @@ def create_animations_from_static_plots(fr_time_file, beta_values, threshold_val
         # Create 3D animation using matplotlib (fallback method)
         fig_3d = plt.figure(figsize=(10, 8))
         ax_3d = fig_3d.add_subplot(111, projection='3d')
-        X, Y = np.meshgrid(beta_values, threshold_values)
+        X, Y = np.meshgrid(beta_values, spectral_radius_values)
         
         def animate_3d(t):
             ax_3d.clear()
@@ -475,9 +470,9 @@ def create_animations_from_static_plots(fr_time_file, beta_values, threshold_val
             surf = ax_3d.plot_surface(X, Y, FR, cmap='viridis', edgecolor='none')
             ax_3d.view_init(elev=30, azim=120)
             ax_3d.set_xlabel('Beta Reservoir')
-            ax_3d.set_ylabel('V_threshold')
+            ax_3d.set_ylabel('Spectral Radius')
             ax_3d.set_zlabel('Avg Firing Rate')
-            ax_3d.set_title(f"3D Surface at Time Step {t} (ρ: {spectral_radius:.2f})")
+            ax_3d.set_title(f"3D Surface at Time Step {t}")
             return [surf]
         
         anim_3d = animation.FuncAnimation(fig_3d, animate_3d, frames=T, interval=250, blit=False)
