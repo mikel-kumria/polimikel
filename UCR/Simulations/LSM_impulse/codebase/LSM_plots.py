@@ -13,7 +13,30 @@ def load_fr_time(fr_time_file):
     """
     return np.load(fr_time_file)
 
-def plot_all_static_3d_surfaces(fr_time_file, beta_values, spectral_radius_values, output_folder):
+def load_averaged_fr_time(output_folder, seeds):
+    """
+    Loads and averages FR_time.npy files from multiple seeds.
+    
+    Parameters:
+        output_folder (str): Base output folder containing seed subfolders
+        seeds (list): List of seed numbers to average
+        
+    Returns:
+        avg_FR_time: Averaged FR_time array
+    """
+    all_FR_times = []
+    for seed in seeds:
+        seed_folder = os.path.join(output_folder, f"seed_{seed}")
+        fr_time_file = os.path.join(seed_folder, "FR_time.npy")
+        if os.path.exists(fr_time_file):
+            all_FR_times.append(load_fr_time(fr_time_file))
+    
+    if not all_FR_times:
+        raise ValueError("No FR_time files found to average")
+    
+    return np.mean(all_FR_times, axis=0)
+
+def plot_all_static_3d_surfaces(fr_time_file, beta_values, spectral_radius_values, output_folder, prefix=""):
     """
     Loads FR_time from file and loops over all time steps to create and save static 3D surface plots.
     Each image is saved in the "static3Dplots" subfolder. Also creates an animation video.
@@ -35,17 +58,17 @@ def plot_all_static_3d_surfaces(fr_time_file, beta_values, spectral_radius_value
         ax.set_xlabel('Beta Reservoir')
         ax.set_ylabel('Spectral Radius')
         ax.set_zlabel('Avg Firing Rate')
-        ax.set_title(f"3D Surface at Time Step {t}")
+        ax.set_title(f"{prefix}3D Surface at Time Step {t}")
         fig.colorbar(surf, shrink=0.5, aspect=5)
         plt.tight_layout()
-        save_path = os.path.join(static3D_dir, f"3d_surface_t{t}.png")
+        save_path = os.path.join(static3D_dir, f"{prefix}3d_surface_t{t}.png")
         plt.savefig(save_path, dpi=600)
         plt.close()
     
     # Create animations after generating static plots
-    create_animations_from_static_plots(fr_time_file, beta_values, spectral_radius_values, output_folder)
+    create_animations_from_static_plots(fr_time_file, beta_values, spectral_radius_values, output_folder, prefix)
 
-def plot_all_static_2d_heatmaps(fr_time_file, beta_values, spectral_radius_values, output_folder):
+def plot_all_static_2d_heatmaps(fr_time_file, beta_values, spectral_radius_values, output_folder, prefix=""):
     """
     Loads FR_time from file and loops over all time steps to create and save static 2D heatmaps.
     Each image is saved in the "static2Dplots" subfolder. Also creates an animation video.
@@ -65,16 +88,16 @@ def plot_all_static_2d_heatmaps(fr_time_file, beta_values, spectral_radius_value
         plt.colorbar(label='Avg Firing Rate')
         plt.xlabel('Beta Reservoir')
         plt.ylabel('Spectral Radius')
-        plt.title(f"2D Heatmap at Time Step {t}")
+        plt.title(f"{prefix}2D Heatmap at Time Step {t}")
         plt.tight_layout()
-        save_path = os.path.join(static2D_dir, f"2d_heatmap_t{t}.png")
+        save_path = os.path.join(static2D_dir, f"{prefix}2d_heatmap_t{t}.png")
         plt.savefig(save_path, dpi=600)
         plt.close()
     
     # Create animations after generating static plots
-    create_animations_from_static_plots(fr_time_file, beta_values, spectral_radius_values, output_folder)
+    create_animations_from_static_plots(fr_time_file, beta_values, spectral_radius_values, output_folder, prefix)
 
-def plot_interactive_animated_3d_from_file(fr_time_file, beta_values, spectral_radius_values, output_folder):
+def plot_interactive_animated_3d_from_file(fr_time_file, beta_values, spectral_radius_values, output_folder, prefix=""):
     """
     Loads FR_time from file and creates an interactive animated 3D surface plot over time,
     with a slider for manual frame control. Exports the animation as an HTML file.
@@ -121,7 +144,7 @@ def plot_interactive_animated_3d_from_file(fr_time_file, beta_values, spectral_r
     # Create the figure and add frames and slider.
     fig = go.Figure(data=[init_surface], frames=frames)
     fig.update_layout(
-        title="Animated 3D Surface of Avg Firing Rate",
+        title=f"{prefix}Animated 3D Surface of Avg Firing Rate",
         scene=dict(
             xaxis_title="Beta Reservoir",
             yaxis_title="Spectral Radius",
@@ -153,10 +176,10 @@ def plot_interactive_animated_3d_from_file(fr_time_file, beta_values, spectral_r
     )
 
     # Save the interactive figure as an HTML file.
-    save_path = os.path.join(output_folder, "interactive_3d_animated.html")
+    save_path = os.path.join(output_folder, f"{prefix}interactive_3d_animated.html")
     fig.write_html(save_path)
 
-def plot_interactive_animated_2d_from_file(fr_time_file, beta_values, spectral_radius_values, output_folder):
+def plot_interactive_animated_2d_from_file(fr_time_file, beta_values, spectral_radius_values, output_folder, prefix=""):
     """
     Loads FR_time from file and creates an interactive animated 2D heatmap over time.
     Adds a slider to manually control the frame being displayed.
@@ -202,7 +225,7 @@ def plot_interactive_animated_2d_from_file(fr_time_file, beta_values, spectral_r
     # Build the figure.
     fig = go.Figure(data=[init_heat], frames=frames)
     fig.update_layout(
-        title="Animated 2D Heatmap of Avg Firing Rate",
+        title=f"{prefix}Animated 2D Heatmap of Avg Firing Rate",
         xaxis_title="Beta Reservoir",
         yaxis_title="Spectral Radius",
         sliders=[{
@@ -236,27 +259,36 @@ def plot_interactive_animated_2d_from_file(fr_time_file, beta_values, spectral_r
     )
 
     # Save the interactive figure as an HTML file.
-    save_path = os.path.join(output_folder, "interactive_2d_animated.html")
+    save_path = os.path.join(output_folder, f"{prefix}interactive_2d_animated.html")
     fig.write_html(save_path)
 
-def plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, spectral_radius_values, output_folder):
+def plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, spectral_radius_values, output_folder, prefix=""):
     """
     Creates an interactive heatmap showing convergence times with hover information.
     """
     FR_time = load_fr_time(fr_time_file)
-    T, n_rho, n_beta = FR_time.shape
     
-    # Initialize convergence time matrix
-    convergence_times = np.full((n_rho, n_beta), T)  # Default to max time steps
-    
-    # For each configuration, find when firing rate goes below 1%
-    for i in range(n_rho):
-        for j in range(n_beta):
-            firing_rates = FR_time[:, i, j]
-            # Find first time step where firing rate < 1%
-            below_threshold = np.where(firing_rates < 0.01)[0]
-            if len(below_threshold) > 0:
-                convergence_times[i, j] = below_threshold[0]
+    # Handle different possible shapes of FR_time
+    if len(FR_time.shape) == 3:
+        T, n_rho, n_beta = FR_time.shape
+        # Initialize convergence time matrix
+        convergence_times = np.full((n_rho, n_beta), T)  # Default to max time steps
+        
+        # For each configuration, find when firing rate goes below 1%
+        for i in range(n_rho):
+            for j in range(n_beta):
+                firing_rates = FR_time[:, i, j]
+                # Find first time step where firing rate < 1%
+                below_threshold = np.where(firing_rates < 0.01)[0]
+                if len(below_threshold) > 0:
+                    convergence_times[i, j] = below_threshold[0]
+    elif len(FR_time.shape) == 2:
+        # If it's already a 2D array, assume it's the convergence times
+        convergence_times = FR_time
+        n_rho, n_beta = convergence_times.shape
+        T = np.max(convergence_times)  # Use maximum convergence time as T
+    else:
+        raise ValueError(f"Unexpected FR_time shape: {FR_time.shape}")
     
     # Create hover text matrix
     hover_text = []
@@ -295,7 +327,7 @@ def plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, spectra
     
     # Update layout
     fig.update_layout(
-        title="Interactive Convergence Time Heatmap",
+        title=f"{prefix}Interactive Convergence Time Heatmap",
         xaxis_title="Beta Reservoir",
         yaxis_title="Spectral Radius",
         width=800,
@@ -303,10 +335,10 @@ def plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, spectra
     )
     
     # Save the interactive plot
-    save_path = os.path.join(output_folder, "convergence_time_heatmap_interactive.html")
+    save_path = os.path.join(output_folder, f"{prefix}convergence_time_heatmap_interactive.html")
     fig.write_html(save_path)
 
-def plot_convergence_time_heatmap(fr_time_file, beta_values, spectral_radius_values, output_folder):
+def plot_convergence_time_heatmap(fr_time_file, beta_values, spectral_radius_values, output_folder, prefix=""):
     """
     Creates both static and interactive heatmaps showing how many time steps it takes 
     for each configuration (spectral_radius, beta_reservoir) to reach an average firing 
@@ -314,19 +346,28 @@ def plot_convergence_time_heatmap(fr_time_file, beta_values, spectral_radius_val
     a special value.
     """
     FR_time = load_fr_time(fr_time_file)
-    T, n_rho, n_beta = FR_time.shape
     
-    # Initialize convergence time matrix
-    convergence_times = np.full((n_rho, n_beta), T)  # Default to max time steps
-    
-    # For each configuration, find when firing rate goes below 1%
-    for i in range(n_rho):
-        for j in range(n_beta):
-            firing_rates = FR_time[:, i, j]
-            # Find first time step where firing rate < 1%
-            below_threshold = np.where(firing_rates < 0.01)[0]
-            if len(below_threshold) > 0:
-                convergence_times[i, j] = below_threshold[0]
+    # Handle different possible shapes of FR_time
+    if len(FR_time.shape) == 3:
+        T, n_rho, n_beta = FR_time.shape
+        # Initialize convergence time matrix
+        convergence_times = np.full((n_rho, n_beta), T)  # Default to max time steps
+        
+        # For each configuration, find when firing rate goes below 1%
+        for i in range(n_rho):
+            for j in range(n_beta):
+                firing_rates = FR_time[:, i, j]
+                # Find first time step where firing rate < 1%
+                below_threshold = np.where(firing_rates < 0.01)[0]
+                if len(below_threshold) > 0:
+                    convergence_times[i, j] = below_threshold[0]
+    elif len(FR_time.shape) == 2:
+        # If it's already a 2D array, assume it's the convergence times
+        convergence_times = FR_time
+        n_rho, n_beta = convergence_times.shape
+        T = np.max(convergence_times)  # Use maximum convergence time as T
+    else:
+        raise ValueError(f"Unexpected FR_time shape: {FR_time.shape}")
     
     # Create the static plot with extra space on the right for the colorbar
     fig = plt.figure(figsize=(12, 8))
@@ -358,20 +399,20 @@ def plot_convergence_time_heatmap(fr_time_file, beta_values, spectral_radius_val
     
     plt.xlabel('Beta Reservoir')
     plt.ylabel('Spectral Radius')
-    plt.title("Convergence Time Heatmap")
+    plt.title(f"{prefix}Convergence Time Heatmap")
     
     # Adjust layout to prevent overlapping
     plt.tight_layout()
     
     # Save the static plot
-    save_path = os.path.join(output_folder, "convergence_time_heatmap.png")
+    save_path = os.path.join(output_folder, f"{prefix}convergence_time_heatmap.png")
     plt.savefig(save_path, dpi=600, bbox_inches='tight')
     plt.close(fig)
     
     # Create and save the interactive version
-    plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, spectral_radius_values, output_folder)
+    plot_interactive_convergence_time_heatmap(fr_time_file, beta_values, spectral_radius_values, output_folder, prefix)
 
-def create_animations_from_static_plots(fr_time_file, beta_values, spectral_radius_values, output_folder):
+def create_animations_from_static_plots(fr_time_file, beta_values, spectral_radius_values, output_folder, prefix=""):
     """
     Creates video animations by combining the existing static plot images.
     Uses the previously generated PNG files in static2Dplots and static3Dplots folders.
@@ -394,13 +435,13 @@ def create_animations_from_static_plots(fr_time_file, beta_values, spectral_radi
         if os.path.exists(static2D_dir):
             # Get all 2D heatmap PNG files and sort them by time step
             image_files_2d = sorted(
-                [os.path.join(static2D_dir, f) for f in os.listdir(static2D_dir) if f.startswith('2d_heatmap_t') and f.endswith('.png')],
+                [os.path.join(static2D_dir, f) for f in os.listdir(static2D_dir) if f.startswith(f'{prefix}2d_heatmap_t') and f.endswith('.png')],
                 key=lambda x: int(os.path.basename(x).split('t')[1].split('.')[0])  # Extract time step number for sorting
             )
             
             if image_files_2d:
                 # Create output video file path
-                output_video_2d = os.path.join(video_dir, "2d_heatmap_animation.mp4")
+                output_video_2d = os.path.join(video_dir, f"{prefix}2d_heatmap_animation.mp4")
                 
                 # Load images and create video
                 with imageio.get_writer(output_video_2d, fps=4) as writer:
@@ -417,13 +458,13 @@ def create_animations_from_static_plots(fr_time_file, beta_values, spectral_radi
         if os.path.exists(static3D_dir):
             # Get all 3D surface PNG files and sort them by time step
             image_files_3d = sorted(
-                [os.path.join(static3D_dir, f) for f in os.listdir(static3D_dir) if f.startswith('3d_surface_t') and f.endswith('.png')],
+                [os.path.join(static3D_dir, f) for f in os.listdir(static3D_dir) if f.startswith(f'{prefix}3d_surface_t') and f.endswith('.png')],
                 key=lambda x: int(os.path.basename(x).split('t')[1].split('.')[0])  # Extract time step number for sorting
             )
             
             if image_files_3d:
                 # Create output video file path
-                output_video_3d = os.path.join(video_dir, "3d_surface_animation.mp4")
+                output_video_3d = os.path.join(video_dir, f"{prefix}3d_surface_animation.mp4")
                 
                 # Load images and create video
                 with imageio.get_writer(output_video_3d, fps=4) as writer:
@@ -452,11 +493,11 @@ def create_animations_from_static_plots(fr_time_file, beta_values, spectral_radi
                 plt.colorbar(im, label='Avg Firing Rate')
             ax_2d.set_xlabel('Beta Reservoir')
             ax_2d.set_ylabel('Spectral Radius')
-            ax_2d.set_title(f"2D Heatmap at Time Step {t}")
+            ax_2d.set_title(f"{prefix}2D Heatmap at Time Step {t}")
             return [im]
         
         anim_2d = animation.FuncAnimation(fig_2d, animate_2d, frames=T, interval=250, blit=True)
-        anim_2d.save(os.path.join(video_dir, "2d_heatmap_animation_fallback.mp4"), writer='ffmpeg', fps=4)
+        anim_2d.save(os.path.join(video_dir, f"{prefix}2d_heatmap_animation_fallback.mp4"), writer='ffmpeg', fps=4)
         plt.close(fig_2d)
         
         # Create 3D animation using matplotlib (fallback method)
@@ -472,11 +513,11 @@ def create_animations_from_static_plots(fr_time_file, beta_values, spectral_radi
             ax_3d.set_xlabel('Beta Reservoir')
             ax_3d.set_ylabel('Spectral Radius')
             ax_3d.set_zlabel('Avg Firing Rate')
-            ax_3d.set_title(f"3D Surface at Time Step {t}")
+            ax_3d.set_title(f"{prefix}3D Surface at Time Step {t}")
             return [surf]
         
         anim_3d = animation.FuncAnimation(fig_3d, animate_3d, frames=T, interval=250, blit=False)
-        anim_3d.save(os.path.join(video_dir, "3d_surface_animation_fallback.mp4"), writer='ffmpeg', fps=4)
+        anim_3d.save(os.path.join(video_dir, f"{prefix}3d_surface_animation_fallback.mp4"), writer='ffmpeg', fps=4)
         plt.close(fig_3d)
         
     except Exception as e:
