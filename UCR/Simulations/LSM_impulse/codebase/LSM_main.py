@@ -53,14 +53,23 @@ def save_hyperparameters_log(hyperparams, output_folder):
         f.write("\n")
         
         # Load and add spectral radius information
-        W = np.load(hyperparams["connectivity_matrix_path"])
-        spectral_radius = np.max(np.abs(np.linalg.eigvals(W)))
-        f.write("CONNECTIVITY MATRIX PROPERTIES\n")
-        f.write("-" * 80 + "\n")
-        f.write(f"Spectral Radius: {spectral_radius:.4f}\n")
-        f.write(f"Matrix Shape: {W.shape}\n")
-        f.write(f"Matrix Sparsity: {1 - np.count_nonzero(W) / W.size:.4f}\n")
-        f.write("\n")
+        try:
+            # Try to load the first seed's matrix to get properties
+            first_seed = hyperparams.get('seeds', [1])[0]
+            matrix_path = hyperparams["connectivity_matrix_path"].format(seed_num=first_seed)
+            W = np.load(matrix_path)
+            
+            f.write("CONNECTIVITY MATRIX PROPERTIES\n")
+            f.write("-" * 80 + "\n")
+            f.write(f"Spectral Radius: {np.max(np.abs(np.linalg.eigvals(W))):.4f}\n")
+            f.write(f"Matrix Shape: {W.shape}\n")
+            f.write(f"Matrix Sparsity: {1 - np.count_nonzero(W) / W.size:.4f}\n")
+            f.write("\n")
+        except Exception as e:
+            f.write("CONNECTIVITY MATRIX PROPERTIES\n")
+            f.write("-" * 80 + "\n")
+            f.write(f"Could not load matrix: {str(e)}\n")
+            f.write("\n")
         
         f.write("=" * 80 + "\n")
         f.write("End of Hyperparameters Summary\n")
@@ -174,75 +183,145 @@ def run_experiment(hyperparams):
                            hyperparams["beta_reservoir_range"][1], 
                            n_points).tolist()
 
-    # Create a configuration for ray tune that uses grid search
-    config = {
-        "spectral_radius": tune.grid_search(spectral_radius_vals),
-        "beta_reservoir": tune.grid_search(beta_vals),
-        "reservoir_size": hyperparams["reservoir_size"],
-        "device": hyperparams["device"],
-        "reset_delay": hyperparams["reset_delay"],
-        "input_lif_beta": hyperparams["input_lif_beta"],
-        "reset_mechanism": hyperparams["reset_mechanism"],
-        "connectivity_matrix_path": hyperparams["connectivity_matrix_path"],
-        "input_weights_path": hyperparams.get("input_weights_path", None),
-        "output_folder": hyperparams["output_folder"],
-    }
+    # Get the list of seeds to run
+    seeds = hyperparams.get("seeds", [1, 2, 3, 4, 5])
+    
+    # Initialize arrays to store results from all seeds
+    all_FR_time = []
+    all_convergence_times = []
+    
+    # Run experiments for each seed
+    for seed in seeds:
+        print(f"\nRunning experiment for seed {seed}")
+        
+        # Create seed-specific output folder
+        seed_folder = os.path.join(output_folder, f"seed_{seed}")
+        os.makedirs(seed_folder, exist_ok=True)
+        
+        # Update connectivity matrix path for this seed
+        seed_hyperparams = hyperparams.copy()
+        seed_hyperparams["output_folder"] = seed_folder
+        seed_hyperparams["connectivity_matrix_path"] = hyperparams["connectivity_matrix_path"].format(seed_num=seed)
+        
+        # Create configuration for ray tune
+        config = {
+            "spectral_radius": tune.grid_search(spectral_radius_vals),
+            "beta_reservoir": tune.grid_search(beta_vals),
+            "reservoir_size": seed_hyperparams["reservoir_size"],
+            "device": seed_hyperparams["device"],
+            "reset_delay": seed_hyperparams["reset_delay"],
+            "input_lif_beta": seed_hyperparams["input_lif_beta"],
+            "reset_mechanism": seed_hyperparams["reset_mechanism"],
+            "connectivity_matrix_path": seed_hyperparams["connectivity_matrix_path"],
+            "input_weights_path": seed_hyperparams.get("input_weights_path", None),
+            "output_folder": seed_hyperparams["output_folder"],
+        }
 
-    # Initialize ray and run the grid search
-    ray.init(ignore_reinit_error=True)
-    analysis = tune.run(
-        run_trial,
-        config=config,
-        resources_per_trial={"gpu": 1} if hyperparams["device"]=="cuda" else {"cpu": 1},
-        metric="avg_firing_rate",
-        mode="max",
-        storage_path=hyperparams.get("storage_path", os.path.join(output_folder, "ray_storage"))
-    )
-    ray.shutdown()
+        # Initialize ray and run the grid search
+        ray.init(ignore_reinit_error=True)
+        analysis = tune.run(
+            run_trial,
+            config=config,
+            resources_per_trial={"gpu": 1} if seed_hyperparams["device"]=="cuda" else {"cpu": 1},
+            metric="avg_firing_rate",
+            mode="max",
+            storage_path=hyperparams.get("storage_path", os.path.join(seed_folder, "ray_storage"))
+        )
+        ray.shutdown()
 
-    # ------------------------
-    # Aggregate the trial results into a single FR_time array
-    trials = analysis.trials
-    time_steps = 50  # This should match the number of time steps you used
-    FR_time = np.zeros((time_steps, len(spectral_radius_vals), len(beta_vals)))
-    for trial in trials:
-        rho_val = trial.config["spectral_radius"]
-        b_val = trial.config["beta_reservoir"]
-        i = spectral_radius_vals.index(rho_val)
-        j = beta_vals.index(b_val)
-        FR_time[:, i, j] = trial.last_result["firing_rate_time"]
+        # Process results for this seed
+        trials = analysis.trials
+        time_steps = 50  # This should match the number of time steps you used
+        FR_time = np.zeros((time_steps, len(spectral_radius_vals), len(beta_vals)))
+        convergence_times = np.zeros((len(spectral_radius_vals), len(beta_vals)))
+        
+        for trial in trials:
+            rho_val = trial.config["spectral_radius"]
+            b_val = trial.config["beta_reservoir"]
+            i = spectral_radius_vals.index(rho_val)
+            j = beta_vals.index(b_val)
+            FR_time[:, i, j] = trial.last_result["firing_rate_time"]
+            
+            # Calculate convergence time (you'll need to implement this)
+            convergence_times[i, j] = calculate_convergence_time(trial.last_result["firing_rate_time"])
 
-    # Save the aggregated FR_time for later plotting
-    fr_time_file = os.path.join(output_folder, "FR_time.npy")
-    np.save(fr_time_file, FR_time)
+        # Save the seed-specific results
+        fr_time_file = os.path.join(seed_folder, "FR_time.npy")
+        np.save(fr_time_file, FR_time)
+        
+        conv_time_file = os.path.join(seed_folder, "convergence_times.npy")
+        np.save(conv_time_file, convergence_times)
+        
+        # Store results for averaging
+        all_FR_time.append(FR_time)
+        all_convergence_times.append(convergence_times)
+        
+        # Generate plots for this seed
+        import LSM_plots as plots
+        plots.plot_all_static_3d_surfaces(fr_time_file, beta_vals, spectral_radius_vals, seed_folder)
+        plots.plot_all_static_2d_heatmaps(fr_time_file, beta_vals, spectral_radius_vals, seed_folder)
+        plots.plot_interactive_animated_3d_from_file(fr_time_file, beta_vals, spectral_radius_vals, seed_folder)
+        plots.plot_interactive_animated_2d_from_file(fr_time_file, beta_vals, spectral_radius_vals, seed_folder)
+        plots.plot_convergence_time_heatmap(conv_time_file, beta_vals, spectral_radius_vals, seed_folder)
 
-    # ------------------------
-    # Generate all plots
+    # Calculate and save averaged results
+    avg_FR_time = np.mean(all_FR_time, axis=0)
+    avg_convergence_times = np.mean(all_convergence_times, axis=0)
+    
+    # Save averaged results
+    avg_fr_time_file = os.path.join(output_folder, "avg_FR_time.npy")
+    np.save(avg_fr_time_file, avg_FR_time)
+    
+    avg_conv_time_file = os.path.join(output_folder, "avg_convergence_times.npy")
+    np.save(avg_conv_time_file, avg_convergence_times)
+    
+    # Generate averaged plots
     import LSM_plots as plots
-    plots.plot_all_static_3d_surfaces(fr_time_file, beta_vals, spectral_radius_vals, output_folder)
-    plots.plot_all_static_2d_heatmaps(fr_time_file, beta_vals, spectral_radius_vals, output_folder)
-    plots.plot_interactive_animated_3d_from_file(fr_time_file, beta_vals, spectral_radius_vals, output_folder)
-    plots.plot_interactive_animated_2d_from_file(fr_time_file, beta_vals, spectral_radius_vals, output_folder)
-    plots.plot_convergence_time_heatmap(fr_time_file, beta_vals, spectral_radius_vals, output_folder)
+    plots.plot_all_static_3d_surfaces(avg_fr_time_file, beta_vals, spectral_radius_vals, output_folder, prefix="avg_")
+    plots.plot_all_static_2d_heatmaps(avg_fr_time_file, beta_vals, spectral_radius_vals, output_folder, prefix="avg_")
+    plots.plot_interactive_animated_3d_from_file(avg_fr_time_file, beta_vals, spectral_radius_vals, output_folder, prefix="avg_")
+    plots.plot_interactive_animated_2d_from_file(avg_fr_time_file, beta_vals, spectral_radius_vals, output_folder, prefix="avg_")
+    plots.plot_convergence_time_heatmap(avg_conv_time_file, beta_vals, spectral_radius_vals, output_folder, prefix="avg_")
 
     print(f"Experiment completed. All results saved in: {output_folder}")
     return output_folder
 
+def calculate_convergence_time(firing_rates, threshold=0.01):
+    """
+    Calculate the convergence time for a given firing rate time series.
+    
+    Parameters:
+        firing_rates (np.ndarray): Array of firing rates over time
+        threshold (float): Threshold for considering convergence
+        
+    Returns:
+        int: Time step at which convergence is reached
+    """
+    # Calculate the difference between consecutive time steps
+    diffs = np.abs(np.diff(firing_rates))
+    
+    # Find the first time step where the difference is below threshold
+    for t in range(len(diffs)):
+        if np.all(diffs[t:] < threshold):
+            return t + 1
+    
+    return len(firing_rates)  # Return last time step if no convergence
+
 if __name__ == '__main__':
     # Default hyperparameters when running as main script
     hyperparams = {
-        #"device": "cuda" if torch.cuda.is_available() else "cpu",
         "device": "cpu",
         "output_base_dir": "/Users/mikel/Documents/GitHub/polimikel/UCR/Simulations/LSM_impulse/results",
-        "connectivity_matrix_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/W_reservoir/Symmetric_20250424_010557/rho1x0/W_res_seed1.npy",
+        "connectivity_matrix_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/generated_matrices/Random_Gaussian/E50I50/W_res_seed{seed_num}.npy",
         "input_weights_path": "/Users/mikel/Documents/GitHub/polimikel/UCR/Weight_matrices/nnLinear_Vectors/nnLinear_weights_seed1.npy",
         "reservoir_size": 100,
         "reset_delay": 0,
         "input_lif_beta": 0.01,
-        "reset_mechanism": "zero",  # zero, none or subtract
-        "spectral_radius_range": [0.9, 1.1],  # Range for spectral radius grid search
-        "beta_reservoir_range": [0.8, 1.0],  # Range for beta reservoir grid search
-        "grid_points": 50  # Number of points in the grid search
+        "reset_mechanism": "zero",
+        "spectral_radius_range": [0.9, 1.1],
+        "beta_reservoir_range": [0.8, 1.0],
+        "grid_points": 2,
+        "seeds": [1, 2, 3]  # List of seeds to run
     }
 
     run_experiment(hyperparams)
