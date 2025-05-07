@@ -5,9 +5,9 @@ from torch.utils.data import DataLoader
 import numpy as np
 import matplotlib.pyplot as plt
 
-from Feedforward.tXOR_dataset import TemporalXORDataset
-from Feedforward.tXOR_feedforward import TemporalXORNetwork
-from Feedforward.tXOR_imports import train, validate
+from .tXOR_dataset import TemporalXORDataset
+from .tXOR_feedforward import TemporalXORNetwork
+from .tXOR_imports import train, validate
 
 def main():
     # Set random seed for reproducibility
