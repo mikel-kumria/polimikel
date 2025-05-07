@@ -1,50 +1,77 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
-import snntorch as snn
-from snntorch import surrogate
+from torch.utils.data import DataLoader
 import numpy as np
 
-def validate(model, loader, criterion, device):
-    model.eval()
-    total_loss = 0.0
+def train(model, train_loader, optimizer, criterion, device):
+    model.train()
+    total_loss = 0
     correct = 0
     total = 0
-    spike_counts = []
+    total_spikes = 0
     
-    with torch.no_grad():
-        for data, labels in loader:
-            data = data.to(device)
-            labels = labels.to(device)
-            data = data.permute(1, 0, 2)
-            
-            # Forward pass
-            outs, avg_out = model(data)
-            
-            # Compute loss
-            loss = criterion(avg_out, labels)
-            total_loss += loss.item()
-            
-            # Compute accuracy (get the index of maximum value)
-            pred = torch.argmax(avg_out, dim=1)
-            true = torch.argmax(labels, dim=1)
-            correct += (pred == true).sum().item()
-            total += labels.size(0)
-            
-            # Collect spike counts (only from the hidden layer)
-            spike_counts.append(outs[-10:].sum().item() / (10 * labels.size(0)))  # Average spikes per neuron per time step
+    for batch_idx, (data, targets) in enumerate(train_loader):
+        data = data.to(device)
+        targets = targets.to(device)
+        
+        optimizer.zero_grad()
+        
+        # Forward pass
+        spk_rec, outputs = model(data)
+        
+        # Calculate loss on last 10 timesteps
+        loss = criterion(outputs, targets)
+        
+        # Backward pass
+        loss.backward()
+        optimizer.step()
+        
+        # Calculate accuracy
+        pred = torch.argmax(outputs, dim=1)
+        true = torch.argmax(targets, dim=1)
+        correct += (pred == true).sum().item()
+        total += targets.size(0)
+        
+        # Calculate average spikes
+        total_spikes += spk_rec.sum().item()
+        total_loss += loss.item()
     
-    accuracy = 100 * correct / total
-    avg_loss = total_loss / len(loader)
-    avg_spikes = np.mean(spike_counts)
+    avg_loss = total_loss / len(train_loader)
+    accuracy = 100. * correct / total
+    avg_spikes = total_spikes / (total * model.fc1.out_features * data.size(0))
     
     return avg_loss, accuracy, avg_spikes
 
-def monitor_spike_activity(model, data, device):
+def validate(model, val_loader, criterion, device):
     model.eval()
+    total_loss = 0
+    correct = 0
+    total = 0
+    total_spikes = 0
+    
     with torch.no_grad():
-        data = data.to(device)
-        data = data.permute(1, 0, 2)
-        outs, _ = model(data)
-        return outs 
+        for data, targets in val_loader:
+            data = data.to(device)
+            targets = targets.to(device)
+            
+            # Forward pass
+            spk_rec, outputs = model(data)
+            
+            # Calculate loss
+            loss = criterion(outputs, targets)
+            
+            # Calculate accuracy
+            pred = torch.argmax(outputs, dim=1)
+            true = torch.argmax(targets, dim=1)
+            correct += (pred == true).sum().item()
+            total += targets.size(0)
+            
+            # Calculate average spikes
+            total_spikes += spk_rec.sum().item()
+            total_loss += loss.item()
+    
+    avg_loss = total_loss / len(val_loader)
+    accuracy = 100. * correct / total
+    avg_spikes = total_spikes / (total * model.fc1.out_features * data.size(0))
+    
+    return avg_loss, accuracy, avg_spikes 
