@@ -11,8 +11,11 @@ class TemporalXORNetwork(nn.Module):
         self.fc1 = nn.Linear(input_size, hidden_size, bias=False)
         self.fc2 = nn.Linear(hidden_size, output_size, bias=False)
         
+        # Create surrogate gradient function
+        spike_grad = surrogate.fast_sigmoid(slope=spike_grad_slope)
+        
         # Initialize LIF neurons
-        self.lif1 = snn.Leaky(beta=beta, threshold=threshold, spike_grad=spike_grad_slope)
+        self.lif1 = snn.Leaky(beta=beta, threshold=threshold, spike_grad=spike_grad)
         
         # Initialize weights
         nn.init.xavier_uniform_(self.fc1.weight, gain=weight_gain)
