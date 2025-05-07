@@ -4,6 +4,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+from datetime import datetime
 
 from .tXOR_dataset import TemporalXORDataset
 from .tXOR_feedforward import TemporalXORNetwork
@@ -13,6 +15,13 @@ def main():
     # Set random seed for reproducibility
     torch.manual_seed(42)
     np.random.seed(42)
+    
+    # Create results directory if it doesn't exist
+    results_dir = os.path.join(os.path.dirname(__file__), 'Results')
+    os.makedirs(results_dir, exist_ok=True)
+    
+    # Create timestamp for unique filenames
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     
     # Hyperparameters
     num_epochs = 20
@@ -66,6 +75,18 @@ def main():
         print(f'Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%, Avg Spikes: {val_spike:.2f}')
         print('-' * 50)
     
+    # Save training metrics
+    metrics = {
+        'train_losses': train_losses,
+        'val_losses': val_losses,
+        'train_accs': train_accs,
+        'val_accs': val_accs,
+        'train_spikes': train_spikes,
+        'val_spikes': val_spikes
+    }
+    metrics_path = os.path.join(results_dir, f'metrics_{timestamp}.npz')
+    np.savez(metrics_path, **metrics)
+    
     # Plot results
     plt.figure(figsize=(15, 5))
     
@@ -97,8 +118,19 @@ def main():
     plt.legend()
     
     plt.tight_layout()
-    plt.savefig('training_results.png')
+    plot_path = os.path.join(results_dir, f'training_results_{timestamp}.png')
+    plt.savefig(plot_path)
     plt.close()
+    
+    # Save model
+    model_path = os.path.join(results_dir, f'model_{timestamp}.pt')
+    torch.save({
+        'epoch': num_epochs,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'train_loss': train_losses[-1],
+        'val_loss': val_losses[-1],
+    }, model_path)
 
 if __name__ == "__main__":
     main() 
