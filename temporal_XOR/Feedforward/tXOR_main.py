@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 import os
 from datetime import datetime
 
-from Feedforward.tXOR_dataset import TemporalXORDataset
-from Feedforward.tXOR_feedforward import TemporalXORNetwork
-from Feedforward.tXOR_imports import train, validate
+from tXOR_dataset import TemporalXORDataset
+from tXOR_feedforward import TemporalXORNetwork
+from tXOR_imports import train, validate
 
 def plot_dataset_samples(train_dataset, val_dataset, results_dir, timestamp):
     """Plot 10 samples from both training and validation datasets."""
