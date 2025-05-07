@@ -20,7 +20,7 @@ def train(model, train_loader, optimizer, criterion, device):
         spk_rec, outputs = model(data)
         
         # Calculate loss on last 10 timesteps
-        loss = criterion(outputs, targets)
+        loss = criterion(outputs, targets)  # outputs is already averaged over last 10 timesteps
         
         # Backward pass
         loss.backward()
@@ -58,7 +58,7 @@ def validate(model, val_loader, criterion, device):
             spk_rec, outputs = model(data)
             
             # Calculate loss
-            loss = criterion(outputs, targets)
+            loss = criterion(outputs, targets)  # outputs is already averaged over last 10 timesteps
             
             # Calculate accuracy
             pred = torch.argmax(outputs, dim=1)
