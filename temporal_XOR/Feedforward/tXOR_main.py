@@ -11,34 +11,49 @@ from tXOR_dataset import TemporalXORDataset
 from tXOR_feedforward import TemporalXORNetwork
 from tXOR_imports import train, validate
 
-def plot_dataset_samples(train_dataset, val_dataset, results_dir, timestamp):
-    """Plot 10 samples from both training and validation datasets."""
-    plt.figure(figsize=(15, 10))
-    
-    # Plot training samples
-    for i in range(10):
-        plt.subplot(2, 10, i + 1)
-        sample, label = train_dataset[i]
-        plt.imshow(sample.T, aspect='auto', cmap='viridis')
-        plt.title(f'Train {i}\nLabel: {label.argmax().item()}')
-        if i == 0:
-            plt.ylabel('Input\nNeuron')
-        plt.xlabel('Time Step')
-    
-    # Plot validation samples
-    for i in range(10):
-        plt.subplot(2, 10, i + 11)
-        sample, label = val_dataset[i]
-        plt.imshow(sample.T, aspect='auto', cmap='viridis')
-        plt.title(f'Val {i}\nLabel: {label.argmax().item()}')
-        if i == 0:
-            plt.ylabel('Input\nNeuron')
-        plt.xlabel('Time Step')
-    
-    plt.tight_layout()
-    plot_path = os.path.join(results_dir, f'dataset_samples_{timestamp}.png')
-    plt.savefig(plot_path)
+def plot_grid_samples(dataset, results_dir, timestamp, prefix):
+    """Plot a 5x5 grid of samples from the dataset, showing only neurons 0 and 1, maximizing subplot size."""
+    n_rows, n_cols = 5, 5
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 15))
+    for i in range(n_rows * n_cols):
+        ax = axes[i // n_cols, i % n_cols]
+        sample, label = dataset[i]
+        # Optionally pad to square for perfect squares:
+        data = sample.T[:2]
+        if data.shape[0] < data.shape[1]:
+            # Pad rows (neurons) to match columns (timesteps)
+            pad = ((0, data.shape[1] - data.shape[0]), (0, 0))
+        else:
+            # Pad columns (timesteps) to match rows (neurons)
+            pad = ((0, 0), (0, data.shape[0] - data.shape[1]))
+        data_sq = np.pad(data, pad, mode='constant')
+        ax.imshow(data_sq, aspect='auto', cmap='viridis', interpolation='none')
+        ax.set_title(f'{prefix} {i}\nLabel: {label.argmax().item()}', fontsize=10)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.axis('off')
+    plt.subplots_adjust(wspace=0, hspace=0)
+    plot_path = os.path.join(results_dir, f'{prefix.lower()}_samples_{timestamp}.png')
+    plt.savefig(plot_path, dpi=200, bbox_inches='tight', pad_inches=0)
     plt.close()
+
+def plot_sample_traces(dataset, results_dir, timestamp, prefix, num_samples=5):
+    """Plot line traces of neuron 0 and neuron 1 for num_samples random samples from the dataset."""
+    indices = np.random.choice(len(dataset), num_samples, replace=False)
+    for idx, sample_idx in enumerate(indices):
+        sample, label = dataset[sample_idx]
+        timesteps = np.arange(sample.shape[0])
+        plt.figure(figsize=(8, 4))
+        plt.plot(timesteps, sample[:, 0], label='Neuron 0 (A)', marker='o')
+        plt.plot(timesteps, sample[:, 1], label='Neuron 1 (B)', marker='o')
+        plt.xlabel('Timestep')
+        plt.ylabel('Input Value')
+        plt.title(f'{prefix} Sample {sample_idx} | Label: {label.argmax().item()}')
+        plt.legend()
+        plt.tight_layout()
+        plot_path = os.path.join(results_dir, f'{prefix.lower()}_trace_{sample_idx}_{timestamp}.png')
+        plt.savefig(plot_path, dpi=150)
+        plt.close()
 
 def main():
     # Set random seed for reproducibility
@@ -73,7 +88,7 @@ def main():
     
     # Training parameters
     training_params = {
-        'num_epochs': 100,
+        'num_epochs': 1,
         'batch_size': 32,
         'learning_rate': 5e-4,
         'device': torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
@@ -91,8 +106,9 @@ def main():
         seq_len=dataset_params['seq_len']
     )
     
-    # Plot dataset samples (comment out if not needed)
-    plot_dataset_samples(train_dataset, val_dataset, results_dir, timestamp)
+    # Plot sample traces (comment out if not needed)
+    plot_sample_traces(train_dataset, results_dir, timestamp, prefix='Train', num_samples=5)
+    plot_sample_traces(val_dataset, results_dir, timestamp, prefix='Val', num_samples=5)
     
     # Create data loaders
     train_loader = DataLoader(train_dataset, batch_size=training_params['batch_size'], shuffle=True)
@@ -110,7 +126,7 @@ def main():
     ).to(training_params['device'])
     
     # Loss function and optimizer
-    criterion = nn.BCELoss()
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=training_params['learning_rate'])
     
     # Training loop
