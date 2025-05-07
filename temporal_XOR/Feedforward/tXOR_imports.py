@@ -13,6 +13,8 @@ def train(model, train_loader, optimizer, criterion, device):
     for batch_idx, (data, targets) in enumerate(train_loader):
         data = data.to(device)
         targets = targets.to(device)
+        # Permute data to [time_steps, batch_size, input_size]
+        data = data.permute(1, 0, 2)
         
         optimizer.zero_grad()
         
@@ -53,6 +55,8 @@ def validate(model, val_loader, criterion, device):
         for data, targets in val_loader:
             data = data.to(device)
             targets = targets.to(device)
+            # Permute data to [time_steps, batch_size, input_size]
+            data = data.permute(1, 0, 2)
             
             # Forward pass
             spk_rec, outputs = model(data)
