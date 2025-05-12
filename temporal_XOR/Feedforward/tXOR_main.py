@@ -6,10 +6,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from datetime import datetime
+import json
+import csv
 
 from tXOR_dataset import TemporalXORDataset
 from tXOR_feedforward import TemporalXORNetwork
 from tXOR_imports import train, validate
+from tXOR_plots import plot_sample_traces
 
 def plot_grid_samples(dataset, results_dir, timestamp, prefix):
     """Plot a 5x5 grid of samples from the dataset, showing only neurons 0 and 1, maximizing subplot size."""
@@ -37,24 +40,6 @@ def plot_grid_samples(dataset, results_dir, timestamp, prefix):
     plt.savefig(plot_path, dpi=200, bbox_inches='tight', pad_inches=0)
     plt.close()
 
-def plot_sample_traces(dataset, results_dir, timestamp, prefix, num_samples=5):
-    """Plot line traces of neuron 0 and neuron 1 for num_samples random samples from the dataset."""
-    indices = np.random.choice(len(dataset), num_samples, replace=False)
-    for idx, sample_idx in enumerate(indices):
-        sample, label = dataset[sample_idx]
-        timesteps = np.arange(sample.shape[0])
-        plt.figure(figsize=(8, 4))
-        plt.plot(timesteps, sample[:, 0], label='Neuron 0 (A)', marker='o')
-        plt.plot(timesteps, sample[:, 1], label='Neuron 1 (B)', marker='o')
-        plt.xlabel('Timestep')
-        plt.ylabel('Input Value')
-        plt.title(f'{prefix} Sample {sample_idx} | Label: {label.argmax().item()}')
-        plt.legend()
-        plt.tight_layout()
-        plot_path = os.path.join(results_dir, f'{prefix.lower()}_trace_{sample_idx}_{timestamp}.png')
-        plt.savefig(plot_path, dpi=150)
-        plt.close()
-
 def main():
     # Set random seed for reproducibility
     torch.manual_seed(42)
@@ -64,15 +49,19 @@ def main():
     results_dir = os.path.join(os.path.dirname(__file__), 'Results')
     os.makedirs(results_dir, exist_ok=True)
     
-    # Create timestamp for unique filenames
+    # Create timestamp for unique experiment folder
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    experiment_dir = os.path.join(results_dir, f'experiment_{timestamp}')
+    os.makedirs(experiment_dir, exist_ok=True)
     
     # Dataset parameters
     dataset_params = {
         'num_samples_train': 1000,
         'num_samples_val': 200,
-        'seq_len': 30,
-        'v_th': 2.0,  # Input voltage threshold
+        'seq_len': 50,  # Total sequence length
+        'v_th': 2.0,    # Input voltage threshold
+        'min_gap': 0,   # Minimum gap between A and B
+        'max_gap': 3,  # Maximum gap between A and B
     }
     
     # Network parameters
@@ -81,34 +70,53 @@ def main():
         'hidden_size': 100,
         'output_size': 2,
         'beta': 0.9,  # LIF neuron decay rate
-        'threshold': 0.5,  # LIF neuron threshold
+        'threshold': 1,  # LIF neuron threshold
         'spike_grad_slope': 25,  # Surrogate gradient slope
-        'weight_gain': 2.0,  # Weight initialization gain
+        'weight_gain': 15.0,  # Weight initialization gain
     }
     
     # Training parameters
     training_params = {
-        'num_epochs': 1,
+        'num_epochs': 100,
         'batch_size': 32,
-        'learning_rate': 5e-4,
+        'learning_rate': 5e-3,
         'device': torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
     }
+    
+    # Save all hyperparameters and relevant info to JSON and TXT
+    experiment_info = {
+        'timestamp': timestamp,
+        'dataset_params': dataset_params,
+        'network_params': network_params,
+        'training_params': {k: str(v) for k, v in training_params.items()},
+        'seed': 42,
+        'code_version': 'v1.0',
+    }
+    with open(os.path.join(experiment_dir, 'experiment_info.json'), 'w') as f:
+        json.dump(experiment_info, f, indent=4)
+    with open(os.path.join(experiment_dir, 'experiment_info.txt'), 'w') as f:
+        for k, v in experiment_info.items():
+            f.write(f'{k}: {v}\n')
     
     # Create datasets
     train_dataset = TemporalXORDataset(
         num_samples=dataset_params['num_samples_train'],
         v_th=dataset_params['v_th'],
-        seq_len=dataset_params['seq_len']
+        seq_len=dataset_params['seq_len'],
+        min_gap=dataset_params['min_gap'],
+        max_gap=dataset_params['max_gap']
     )
     val_dataset = TemporalXORDataset(
         num_samples=dataset_params['num_samples_val'],
         v_th=dataset_params['v_th'],
-        seq_len=dataset_params['seq_len']
+        seq_len=dataset_params['seq_len'],
+        min_gap=dataset_params['min_gap'],
+        max_gap=dataset_params['max_gap']
     )
     
     # Plot sample traces (comment out if not needed)
-    plot_sample_traces(train_dataset, results_dir, timestamp, prefix='Train', num_samples=5)
-    plot_sample_traces(val_dataset, results_dir, timestamp, prefix='Val', num_samples=5)
+    plot_sample_traces(train_dataset, experiment_dir, timestamp, prefix='Train', num_samples=5)
+    plot_sample_traces(val_dataset, experiment_dir, timestamp, prefix='Val', num_samples=5)
     
     # Create data loaders
     train_loader = DataLoader(train_dataset, batch_size=training_params['batch_size'], shuffle=True)
@@ -163,7 +171,7 @@ def main():
         print(f'Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%, Avg Spikes: {val_spike:.2f}')
         print('-' * 50)
     
-    # Save training metrics
+    # Save training metrics in a standard format (CSV and JSON)
     metrics = {
         'train_losses': train_losses,
         'val_losses': val_losses,
@@ -175,8 +183,18 @@ def main():
         'network_params': network_params,
         'training_params': training_params
     }
-    metrics_path = os.path.join(results_dir, f'metrics_{timestamp}.npz')
+    # Save as npz
+    metrics_path = os.path.join(experiment_dir, f'metrics_{timestamp}.npz')
     np.savez(metrics_path, **metrics)
+    # Save as JSON
+    with open(os.path.join(experiment_dir, 'metrics.json'), 'w') as f:
+        json.dump(metrics, f, indent=4, default=str)
+    # Save as CSV (per-epoch)
+    with open(os.path.join(experiment_dir, 'metrics_per_epoch.csv'), 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['epoch', 'train_loss', 'val_loss', 'train_acc', 'val_acc', 'train_spikes', 'val_spikes'])
+        for i in range(len(train_losses)):
+            writer.writerow([i+1, train_losses[i], val_losses[i], train_accs[i], val_accs[i], train_spikes[i], val_spikes[i]])
     
     # Plot results
     plt.figure(figsize=(15, 5))
@@ -209,12 +227,12 @@ def main():
     plt.legend()
     
     plt.tight_layout()
-    plot_path = os.path.join(results_dir, f'training_results_{timestamp}.png')
+    plot_path = os.path.join(experiment_dir, f'training_results_{timestamp}.png')
     plt.savefig(plot_path)
     plt.close()
     
     # Save model and parameters
-    model_path = os.path.join(results_dir, f'model_{timestamp}.pt')
+    model_path = os.path.join(experiment_dir, f'model_{timestamp}.pt')
     torch.save({
         'epoch': training_params['num_epochs'],
         'model_state_dict': model.state_dict(),
