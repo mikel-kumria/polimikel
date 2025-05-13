@@ -45,14 +45,17 @@ def main():
     torch.manual_seed(42)
     np.random.seed(42)
     
-    # Create results directory if it doesn't exist
-    results_dir = os.path.join(os.path.dirname(__file__), 'Results')
+    # Paths
+    base_dir = os.path.dirname(__file__)
+    results_dir = os.path.join(base_dir, 'Results')
     os.makedirs(results_dir, exist_ok=True)
-    
-    # Create timestamp for unique experiment folder
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    experiment_dir = os.path.join(results_dir, f'experiment_{timestamp}')
-    os.makedirs(experiment_dir, exist_ok=True)
+    # Add min_gap and max_gap to folder name
+    exp_dir = os.path.join(
+        results_dir,
+        f'exp_{timestamp}_min{dataset_params["min_gap"]}_max{dataset_params["max_gap"]}'
+    )
+    os.makedirs(exp_dir, exist_ok=True)
     
     # Dataset parameters
     dataset_params = {
@@ -61,7 +64,7 @@ def main():
         'seq_len': 50,  # Total sequence length
         'v_th': 2.0,    # Input voltage threshold
         'min_gap': 0,   # Minimum gap between A and B
-        'max_gap': 3,  # Maximum gap between A and B
+        'max_gap': 20,  # Maximum gap between A and B
     }
     
     # Network parameters
@@ -69,7 +72,7 @@ def main():
         'input_size': 3,
         'hidden_size': 100,
         'output_size': 2,
-        'beta': 0.9,  # LIF neuron decay rate
+        'beta': 0.924,  # LIF neuron decay rate
         'threshold': 1,  # LIF neuron threshold
         'spike_grad_slope': 25,  # Surrogate gradient slope
         'weight_gain': 15.0,  # Weight initialization gain
@@ -92,9 +95,9 @@ def main():
         'seed': 42,
         'code_version': 'v1.0',
     }
-    with open(os.path.join(experiment_dir, 'experiment_info.json'), 'w') as f:
+    with open(os.path.join(exp_dir, 'experiment_info.json'), 'w') as f:
         json.dump(experiment_info, f, indent=4)
-    with open(os.path.join(experiment_dir, 'experiment_info.txt'), 'w') as f:
+    with open(os.path.join(exp_dir, 'experiment_info.txt'), 'w') as f:
         for k, v in experiment_info.items():
             f.write(f'{k}: {v}\n')
     
@@ -115,8 +118,8 @@ def main():
     )
     
     # Plot sample traces (comment out if not needed)
-    plot_sample_traces(train_dataset, experiment_dir, timestamp, prefix='Train', num_samples=5)
-    plot_sample_traces(val_dataset, experiment_dir, timestamp, prefix='Val', num_samples=5)
+    plot_sample_traces(train_dataset, exp_dir, timestamp, prefix='Train', num_samples=5)
+    plot_sample_traces(val_dataset, exp_dir, timestamp, prefix='Val', num_samples=5)
     
     # Create data loaders
     train_loader = DataLoader(train_dataset, batch_size=training_params['batch_size'], shuffle=True)
@@ -184,13 +187,13 @@ def main():
         'training_params': training_params
     }
     # Save as npz
-    metrics_path = os.path.join(experiment_dir, f'metrics_{timestamp}.npz')
+    metrics_path = os.path.join(exp_dir, f'metrics_{timestamp}.npz')
     np.savez(metrics_path, **metrics)
     # Save as JSON
-    with open(os.path.join(experiment_dir, 'metrics.json'), 'w') as f:
+    with open(os.path.join(exp_dir, 'metrics.json'), 'w') as f:
         json.dump(metrics, f, indent=4, default=str)
     # Save as CSV (per-epoch)
-    with open(os.path.join(experiment_dir, 'metrics_per_epoch.csv'), 'w', newline='') as csvfile:
+    with open(os.path.join(exp_dir, 'metrics_per_epoch.csv'), 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['epoch', 'train_loss', 'val_loss', 'train_acc', 'val_acc', 'train_spikes', 'val_spikes'])
         for i in range(len(train_losses)):
@@ -227,12 +230,12 @@ def main():
     plt.legend()
     
     plt.tight_layout()
-    plot_path = os.path.join(experiment_dir, f'training_results_{timestamp}.png')
+    plot_path = os.path.join(exp_dir, f'training_results_{timestamp}.png')
     plt.savefig(plot_path)
     plt.close()
     
     # Save model and parameters
-    model_path = os.path.join(experiment_dir, f'model_{timestamp}.pt')
+    model_path = os.path.join(exp_dir, f'model_{timestamp}.pt')
     torch.save({
         'epoch': training_params['num_epochs'],
         'model_state_dict': model.state_dict(),

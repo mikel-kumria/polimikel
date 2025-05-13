@@ -15,7 +15,7 @@ class TemporalXORNetwork(nn.Module):
         spike_grad = surrogate.fast_sigmoid(slope=spike_grad_slope)
         
         # Initialize LIF neurons
-        self.lif1 = snn.Leaky(beta=beta, threshold=threshold, spike_grad=spike_grad)
+        self.lif1 = snn.Leaky(beta=beta, threshold=threshold, spike_grad=spike_grad, learn_beta=False)
         
         # Initialize weights
         nn.init.xavier_uniform_(self.fc1.weight, gain=weight_gain)
@@ -54,7 +54,7 @@ class TemporalXORNetwork(nn.Module):
         # Average spikes over last 10 timesteps
         spk1_avg = spk1_rec[-10:].mean(0)
         
-        # Final classification
+        # Final classification (raw logits, no activation)
         out = self.fc2(spk1_avg)
         
-        return out 
+        return spk1_rec, out 
