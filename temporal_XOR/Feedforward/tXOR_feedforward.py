@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import snntorch as snn
 from snntorch import surrogate
 
@@ -11,11 +12,12 @@ class TemporalXORNetwork(nn.Module):
         self.fc1 = nn.Linear(input_size, hidden_size, bias=False)
         self.fc2 = nn.Linear(hidden_size, output_size, bias=False)
         
-        # Create surrogate gradient function
-        spike_grad = surrogate.fast_sigmoid(slope=spike_grad_slope)
-        
-        # Initialize LIF neurons
-        self.lif1 = snn.Leaky(beta=beta, threshold=threshold, spike_grad=spike_grad, learn_beta=False)
+        # Initialize LIF neurons using snnTorch with surrogate gradient
+        self.lif1 = snn.Leaky(
+            beta=beta,
+            threshold=threshold,
+            spike_grad=surrogate.fast_sigmoid(slope=spike_grad_slope)
+        )
         
         # Initialize weights
         nn.init.xavier_uniform_(self.fc1.weight, gain=weight_gain)
@@ -37,14 +39,11 @@ class TemporalXORNetwork(nn.Module):
             cur1 = self.fc1(x[step])
             spk1, mem1 = self.lif1(cur1, mem1)
             
-            # Record spikes
+            # Record spikes and membrane potential
             spk1_rec.append(spk1)
             mem1_rec.append(mem1)
-            
-            # Detach membrane potential
-            mem1 = mem1.detach()
         
-        # Stack spikes
+        # Stack spikes and membrane potential
         spk1_rec = torch.stack(spk1_rec, dim=0)
         mem1_rec = torch.stack(mem1_rec, dim=0)
         

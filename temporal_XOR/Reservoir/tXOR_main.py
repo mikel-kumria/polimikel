@@ -63,17 +63,19 @@ def main():
     results_dir = os.path.join(base_dir, 'Results')
     os.makedirs(results_dir, exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    # Add min_gap and max_gap to folder name
+    
+    # Dataset parameters
     ds_params = dict(
         num_samples=1000,
         seq_len=50,
         v_th=1.0,
-        min_gap=0,
-        max_gap=30,
+        gap=50,  # Single fixed gap value
     )
+    
+    # Add gap to folder name
     exp_dir = os.path.join(
         results_dir,
-        f'exp_{timestamp}_min{ds_params["min_gap"]}_max{ds_params["max_gap"]}'
+        f'exp_{timestamp}_gap{ds_params["gap"]}'
     )
     os.makedirs(exp_dir, exist_ok=True)
 

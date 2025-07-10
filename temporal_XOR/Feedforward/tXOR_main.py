@@ -50,12 +50,6 @@ def main():
     results_dir = os.path.join(base_dir, 'Results')
     os.makedirs(results_dir, exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    # Add min_gap and max_gap to folder name
-    exp_dir = os.path.join(
-        results_dir,
-        f'exp_{timestamp}_min{dataset_params["min_gap"]}_max{dataset_params["max_gap"]}'
-    )
-    os.makedirs(exp_dir, exist_ok=True)
     
     # Dataset parameters
     dataset_params = {
@@ -63,9 +57,15 @@ def main():
         'num_samples_val': 200,
         'seq_len': 50,  # Total sequence length
         'v_th': 2.0,    # Input voltage threshold
-        'min_gap': 0,   # Minimum gap between A and B
-        'max_gap': 20,  # Maximum gap between A and B
+        'gap': 50,      # Fixed gap between A and B
     }
+    
+    # Add gap to folder name
+    exp_dir = os.path.join(
+        results_dir,
+        f'exp_{timestamp}_gap{dataset_params["gap"]}'
+    )
+    os.makedirs(exp_dir, exist_ok=True)
     
     # Network parameters
     network_params = {
@@ -75,7 +75,7 @@ def main():
         'beta': 0.924,  # LIF neuron decay rate
         'threshold': 1,  # LIF neuron threshold
         'spike_grad_slope': 25,  # Surrogate gradient slope
-        'weight_gain': 15.0,  # Weight initialization gain
+        'weight_gain': 25.0,  # Weight initialization gain
     }
     
     # Training parameters
@@ -106,15 +106,13 @@ def main():
         num_samples=dataset_params['num_samples_train'],
         v_th=dataset_params['v_th'],
         seq_len=dataset_params['seq_len'],
-        min_gap=dataset_params['min_gap'],
-        max_gap=dataset_params['max_gap']
+        gap=dataset_params['gap']
     )
     val_dataset = TemporalXORDataset(
         num_samples=dataset_params['num_samples_val'],
         v_th=dataset_params['v_th'],
         seq_len=dataset_params['seq_len'],
-        min_gap=dataset_params['min_gap'],
-        max_gap=dataset_params['max_gap']
+        gap=dataset_params['gap']
     )
     
     # Plot sample traces (comment out if not needed)

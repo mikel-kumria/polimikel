@@ -9,6 +9,7 @@ def train(model, train_loader, optimizer, criterion, device):
     correct = 0
     total = 0
     total_spikes = 0
+    total_timesteps = 0
     
     for batch_idx, (data, targets) in enumerate(train_loader):
         data = data.to(device)
@@ -28,6 +29,9 @@ def train(model, train_loader, optimizer, criterion, device):
         loss.backward()
         optimizer.step()
         
+        # Accumulate loss
+        total_loss += loss.item()
+        
         # Calculate accuracy
         pred = torch.argmax(outputs, dim=1)
         true = torch.argmax(targets, dim=1)
@@ -36,11 +40,11 @@ def train(model, train_loader, optimizer, criterion, device):
         
         # Calculate average spikes
         total_spikes += spk_rec.sum().item()
-        total_loss += loss.item()
+        total_timesteps += data.size(0) * targets.size(0)  # timesteps * batch_size
     
     avg_loss = total_loss / len(train_loader)
     accuracy = 100. * correct / total
-    avg_spikes = total_spikes / (total * model.fc1.out_features * data.size(0))
+    avg_spikes = total_spikes / (total_timesteps * model.fc1.out_features)  # spikes per neuron per timestep
     
     return avg_loss, accuracy, avg_spikes
 
@@ -50,6 +54,7 @@ def validate(model, val_loader, criterion, device):
     correct = 0
     total = 0
     total_spikes = 0
+    total_timesteps = 0
     
     with torch.no_grad():
         for data, targets in val_loader:
@@ -64,6 +69,9 @@ def validate(model, val_loader, criterion, device):
             # Calculate loss
             loss = criterion(outputs, targets)  # outputs is already averaged over last 10 timesteps
             
+            # Accumulate loss
+            total_loss += loss.item()
+            
             # Calculate accuracy
             pred = torch.argmax(outputs, dim=1)
             true = torch.argmax(targets, dim=1)
@@ -72,10 +80,10 @@ def validate(model, val_loader, criterion, device):
             
             # Calculate average spikes
             total_spikes += spk_rec.sum().item()
-            total_loss += loss.item()
+            total_timesteps += data.size(0) * targets.size(0)  # timesteps * batch_size
     
     avg_loss = total_loss / len(val_loader)
     accuracy = 100. * correct / total
-    avg_spikes = total_spikes / (total * model.fc1.out_features * data.size(0))
+    avg_spikes = total_spikes / (total_timesteps * model.fc1.out_features)  # spikes per neuron per timestep
     
     return avg_loss, accuracy, avg_spikes 

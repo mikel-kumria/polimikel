@@ -1,7 +1,0 @@
-Initialization Parameters:
-Seed: 42
-Initialization Method: uniform
-Reservoir Size: 100
-Uniform Boundaries: -1.0 to 1.0
-Desired Spectral Radii: [0.1, 0.5, 1.0, 2.0, 10.0]
-Timestamp: 20250313_091411
