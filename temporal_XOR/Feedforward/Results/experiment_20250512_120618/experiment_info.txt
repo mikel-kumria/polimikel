@@ -1,6 +1,0 @@
-timestamp: 20250512_120618
-dataset_params: {'num_samples_train': 1000, 'num_samples_val': 200, 'seq_len': 50, 'v_th': 2.0, 'min_gap': 0, 'max_gap': 9}
-network_params: {'input_size': 3, 'hidden_size': 100, 'output_size': 2, 'beta': 0.9, 'threshold': 1, 'spike_grad_slope': 25, 'weight_gain': 15.0}
-training_params: {'num_epochs': '100', 'batch_size': '32', 'learning_rate': '0.005', 'device': 'cpu'}
-seed: 42
-code_version: v1.0
